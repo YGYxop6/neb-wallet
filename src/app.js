@@ -178,9 +178,26 @@ function openWallet() {
   startPoll();
 }
 
+const POLL_MS = 12000;
+let BAR_T0 = 0;
+
+// Fill the bar across the poll interval, so "nothing changed" still looks alive.
+function armBar() {
+  const bar = document.getElementById("poll-bar");
+  if (!bar) return;
+  BAR_T0 = performance.now();
+  bar.style.transition = "none";
+  bar.style.width = "0%";
+  requestAnimationFrame(() => {
+    bar.style.transition = "width " + POLL_MS + "ms linear";
+    bar.style.width = "100%";
+  });
+}
+
 function startPoll() {
   stopPoll();
-  state.poll = setInterval(loadData, 12000);
+  armBar();
+  state.poll = setInterval(() => { armBar(); loadData(); }, POLL_MS);
 }
 
 function stopPoll() {
@@ -225,6 +242,35 @@ function setNumber(id, value) {
   }
 }
 
+function fmtNeb(v) {
+  return (Math.round(v * 1e8) / 1e8).toFixed(8).replace(/0+$/, "").replace(/\.$/, "");
+}
+
+// The balance rolls to its new value instead of snapping, so a refresh that
+// changes something is visible. Text nodes only.
+function setMoney(id, baseUnits) {
+  const el = $(id);
+  if (!el) return;
+  const target = Number(baseUnits || 0) / 1e8;
+  const prev = el.dataset.v === undefined ? 0 : Number(el.dataset.v);   // first paint rolls up from zero
+  const put = (v) => {
+    el.textContent = fmtNeb(v);
+    const unit = document.createElement("small");
+    unit.textContent = "NEB";
+    el.appendChild(unit);
+    el.dataset.v = String(v);
+  };
+  if (!Number.isFinite(prev) || prev === target) { put(target); return; }
+  el.classList.remove("tick"); void el.offsetWidth; el.classList.add("tick");
+  const t0 = performance.now(), ms = 560;
+  const step = (t) => {
+    const k = Math.min(1, (t - t0) / ms);
+    put(k < 1 ? prev + (target - prev) * (1 - Math.pow(1 - k, 3)) : target);
+    if (k < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
+
 function renderBalance() {
   const d = state.data;
   if (!d) {
@@ -233,8 +279,8 @@ function renderBalance() {
     $("a-height").textContent = "–";
     return;
   }
-  setNumber("a-bal", formatAmount(d.balance));
-  setNumber("a-imm", formatAmount(d.immature));
+  setMoney("a-bal", d.balance);
+  setMoney("a-imm", d.immature);
   $("a-height").textContent = String(d.tip);
 }
 
@@ -249,6 +295,9 @@ function renderHint() {
 function shortHash(s, head = 10, tail = 6) {
   return s && s.length > head + tail ? s.slice(0, head) + "…" + s.slice(-tail) : (s || t("h_none"));
 }
+
+let SEEN_TX = new Set();
+let HISTORY_PAINTED = false;
 
 function renderHistory() {
   const list = $("h-list");
@@ -279,6 +328,8 @@ function renderHistory() {
   for (const r of rows.slice(0, 200)) {
     const div = document.createElement("div");
     div.className = "item click";
+    if (HISTORY_PAINTED && !SEEN_TX.has(r.txid)) div.classList.add("new");
+    SEEN_TX.add(r.txid);
     const sign = r.dir === "in" ? "+" : r.dir === "out" ? "−" : "";
     const amt = document.createElement("span");
     amt.className = r.dir === "in" ? "in" : r.dir === "out" ? "out" : "muted";
@@ -309,6 +360,7 @@ function renderHistory() {
     div.onclick = () => showTx(r);
     list.appendChild(div);
   }
+  HISTORY_PAINTED = true;
 }
 
 async function showTx(r) {
@@ -722,7 +774,17 @@ function init() {
     $("s-amount").value = all > 0n ? formatAmount(all) : "0";
   };
   $("r-copy").onclick = () => copy(state.address);
-  $("h-refresh").onclick = loadData;
+  $("h-refresh").onclick = async () => {
+    const b = $("h-refresh");
+    if (b.classList.contains("busy")) return;
+    const was = b.textContent;
+    b.classList.add("busy");
+    b.textContent = "↻";
+    try { await loadData(); } finally {
+      b.classList.remove("busy");
+      b.textContent = was;
+    }
+  };
 
   for (const ev of ["mousemove", "keydown", "click", "touchstart"]) {
     document.addEventListener(ev, touchIdle, { passive: true });
