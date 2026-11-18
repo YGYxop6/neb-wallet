@@ -112,6 +112,12 @@
   .cf-row.stack b{display:block;text-align:left;margin-top:3px}
   .cf-mono{font-family:ui-monospace,Menlo,consolas,monospace;font-size:12px;word-break:break-all}
   .cf-a{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}
+  .cf-in{margin-top:14px}
+  .cf-in[hidden]{display:none}
+  .cf-in input{width:100%;background:#0a0a0a;border:1px solid var(--line,#2a2a2a);color:var(--fg,#ddd);
+    font:inherit;font-size:13px;padding:9px 10px;border-radius:6px;outline:0}
+  .cf-in input:focus{border-color:var(--g,#87ff87)}
+  .cf-err{color:#ff8080;font-size:12px;min-height:16px;margin-top:6px}
 </style>
 
 <header class="top">
@@ -285,6 +291,10 @@
   <div class="cf-box" role="dialog" aria-modal="true" aria-labelledby="cf-t">
     <div class="cf-t" id="cf-t"></div>
     <div class="cf-b" id="cf-b"></div>
+    <div class="cf-in" id="cf-in" hidden>
+      <input id="cf-input" type="password" autocomplete="current-password" spellcheck="false">
+      <div class="cf-err" id="cf-err"></div>
+    </div>
     <div class="cf-a">
       <button class="btn ghost" id="cf-copy"></button>
       <button class="btn ghost" id="cf-no"></button>

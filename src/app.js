@@ -42,6 +42,8 @@ const I18N = {
     h_h: "交易记录", h_refresh: "刷新", h_empty: "还没有交易",
     h_block: "区块", h_height: "高度", h_tx: "交易", h_detail: "交易详情", h_dir: "方向", h_fee_short: "手续费",
     a_key: "私钥", ex_title: "导出私钥", ex_copy: "复制私钥",
+    key_pass_title: "输入钱包密码", key_pass_label: "密码", key_pass_ok: "查看私钥",
+    key_pass_bad: "密码不正确",
     ex_warn: "这串字符谁拿到都能把币转走。只抄在纸上，不要截图、不要发聊天工具。",
     h_close: "关闭", h_self: "转账", h_conf: "确认", h_none: "—",
     foot_note: "私钥从不上传 · 服务器只提供余额查询与交易广播",
@@ -87,6 +89,8 @@ const I18N = {
     h_h: "Transactions", h_refresh: "Refresh", h_empty: "No transactions yet",
     h_block: "block", h_height: "height", h_tx: "txid", h_detail: "Transaction", h_dir: "direction", h_fee_short: "fee",
     a_key: "Key", ex_title: "Export private key", ex_copy: "Copy key",
+    key_pass_title: "Wallet password", key_pass_label: "password", key_pass_ok: "Show key",
+    key_pass_bad: "Wrong password",
     ex_warn: "Anyone holding this string can move your coins. Write it on paper only — never a screenshot or a chat.",
     h_close: "Close", h_self: "Transfer", h_conf: "confirmations", h_none: "—",
     foot_note: "Keys never leave the browser · the server only reads balances and relays transactions",
@@ -536,6 +540,55 @@ function askConfirm({ title, rows = [], text = "", ok = t("cf_ok"), single = fal
   });
 }
 
+function askInput({ title, label, ok, error = "" }) {
+  return new Promise((resolve) => {
+    const box = $("cf");
+    $("cf-t").textContent = title;
+    const body = $("cf-b");
+    body.textContent = "";
+    const row = document.createElement("div");
+    row.className = "cf-row stack";
+    const ka = document.createElement("span");
+    ka.textContent = label;
+    row.appendChild(ka);
+    body.appendChild(row);
+    const wrap = $("cf-in");
+    wrap.hidden = false;
+    const input = $("cf-input");
+    input.value = "";
+    input.type = "password";
+    $("cf-err").textContent = error;
+    $("cf-no").style.display = "";
+    $("cf-no").textContent = t("cf_no");
+    $("cf-yes").textContent = ok;
+    $("cf-copy").style.display = "none";
+    box.hidden = false;
+    setTimeout(() => input.focus(), 30);
+    const done = (value) => {
+      box.hidden = true;
+      wrap.hidden = true;
+      $("cf-yes").onclick = null;
+      $("cf-no").onclick = null;
+      input.onkeydown = null;
+      resolve(value);
+    };
+    $("cf-yes").onclick = () => done(input.value);
+    $("cf-no").onclick = () => done(null);
+    input.onkeydown = (e) => { if (e.key === "Enter") done(input.value); };
+  });
+}
+
+function showKey(secret) {
+  askConfirm({
+    title: t("ex_title"),
+    text: t("ex_warn"),
+    rows: [[t("f_address"), state.address, true],
+           [t("f_secret"), toHex(secret), true]],
+    ok: t("h_close"), single: true,
+    copy: { label: t("ex_copy"), value: toHex(secret) },
+  });
+}
+
 async function doSend() {
   if (!state.secret) return fail("s-msg", t("err_locked"));
   let toLock;
@@ -624,16 +677,18 @@ function init() {
   $("u-go").onclick = doUnlock;
   $("u-pass").onkeydown = (e) => { if (e.key === "Enter") doUnlock(); };
 
-  $("a-key").onclick = () => {
+  $("a-key").onclick = async () => {
     if (!state.secret) return;
-    askConfirm({
-      title: t("ex_title"),
-      text: t("ex_warn"),
-      rows: [[t("f_address"), state.address, true],
-             [t("f_secret"), toHex(state.secret), true]],
-      ok: t("h_close"), single: true,
-      copy: { label: t("ex_copy"), value: toHex(state.secret) },
-    });
+    // the key is the wallet: prove you are the owner before it is on screen,
+    // even though the session is already unlocked
+    let pass = await askInput({ title: t("key_pass_title"), label: t("key_pass_label"), ok: t("key_pass_ok") });
+    while (pass !== null) {
+      let secret = null;
+      try { secret = await store.unlock(pass); } catch (err) { secret = null; }
+      if (secret) { showKey(secret); return; }
+      pass = await askInput({ title: t("key_pass_title"), label: t("key_pass_label"),
+                              ok: t("key_pass_ok"), error: t("key_pass_bad") });
+    }
   };
   $("a-copy").onclick = () => {
     const b = $("a-copy");
