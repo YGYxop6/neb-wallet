@@ -41,6 +41,8 @@ const I18N = {
     r_kick: "收款地址", r_copy: "复制地址",
     h_h: "交易记录", h_refresh: "刷新", h_empty: "还没有交易",
     h_block: "区块", h_height: "高度", h_tx: "交易", h_detail: "交易详情", h_dir: "方向", h_fee_short: "手续费",
+    a_key: "私钥", ex_title: "导出私钥", ex_copy: "复制私钥",
+    ex_warn: "这串字符谁拿到都能把币转走。只抄在纸上，不要截图、不要发聊天工具。",
     h_close: "关闭", h_self: "转账", h_conf: "确认", h_none: "—",
     foot_note: "私钥从不上传 · 服务器只提供余额查询与交易广播",
     foot_src: "源代码", foot_pool: "矿池",
@@ -84,6 +86,8 @@ const I18N = {
     r_kick: "Your address", r_copy: "Copy address",
     h_h: "Transactions", h_refresh: "Refresh", h_empty: "No transactions yet",
     h_block: "block", h_height: "height", h_tx: "txid", h_detail: "Transaction", h_dir: "direction", h_fee_short: "fee",
+    a_key: "Key", ex_title: "Export private key", ex_copy: "Copy key",
+    ex_warn: "Anyone holding this string can move your coins. Write it on paper only — never a screenshot or a chat.",
     h_close: "Close", h_self: "Transfer", h_conf: "confirmations", h_none: "—",
     foot_note: "Keys never leave the browser · the server only reads balances and relays transactions",
     foot_src: "Source", foot_pool: "Pool",
@@ -489,7 +493,7 @@ async function doUnlock() {
 
 // window.confirm() is blocked outright in some in-app browsers and shows the user a
 // raw string on the one screen that has to be read carefully. Same check, better shape.
-function askConfirm({ title, rows = [], text = "", ok = t("cf_ok"), single = false }) {
+function askConfirm({ title, rows = [], text = "", ok = t("cf_ok"), single = false, copy: copyWhat = null }) {
   return new Promise((resolve) => {
     const box = $("cf");
     $("cf-t").textContent = title;
@@ -513,6 +517,12 @@ function askConfirm({ title, rows = [], text = "", ok = t("cf_ok"), single = fal
     });
     $("cf-no").textContent = t("cf_no");
     $("cf-no").style.display = single ? "none" : "";   // [hidden] loses to .btn{display:inline-flex}
+    const cb = $("cf-copy");
+    cb.style.display = copyWhat ? "" : "none";
+    if (copyWhat) {
+      cb.textContent = copyWhat.label;
+      cb.onclick = () => { copy(copyWhat.value); cb.textContent = t("copied"); };
+    }
     $("cf-yes").textContent = ok;
     box.hidden = false;
     const close = (answer) => {
@@ -614,6 +624,17 @@ function init() {
   $("u-go").onclick = doUnlock;
   $("u-pass").onkeydown = (e) => { if (e.key === "Enter") doUnlock(); };
 
+  $("a-key").onclick = () => {
+    if (!state.secret) return;
+    askConfirm({
+      title: t("ex_title"),
+      text: t("ex_warn"),
+      rows: [[t("f_address"), state.address, true],
+             [t("f_secret"), toHex(state.secret), true]],
+      ok: t("h_close"), single: true,
+      copy: { label: t("ex_copy"), value: toHex(state.secret) },
+    });
+  };
   $("a-copy").onclick = () => {
     const b = $("a-copy");
     const was = b.dataset.label || b.textContent;
