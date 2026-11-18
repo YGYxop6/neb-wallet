@@ -40,6 +40,8 @@ const I18N = {
     s_note: "交易在这台设备上签名，服务器只负责转发。签名前会显示收款地址和金额，请核对后再确认。",
     r_kick: "收款地址", r_copy: "复制地址",
     h_h: "交易记录", h_refresh: "刷新", h_empty: "还没有交易",
+    h_block: "区块", h_height: "高度", h_tx: "交易", h_detail: "交易详情", h_dir: "方向", h_fee_short: "手续费",
+    h_close: "关闭", h_self: "转账", h_conf: "确认", h_none: "—",
     foot_note: "私钥从不上传 · 服务器只提供余额查询与交易广播",
     foot_src: "源代码", foot_pool: "矿池",
     err_pass_short: "密码至少 8 位", err_pass_mismatch: "两次输入的密码不一样",
@@ -81,6 +83,8 @@ const I18N = {
     s_note: "The transaction is signed on this device; the server only relays it. Check the address and amount before confirming.",
     r_kick: "Your address", r_copy: "Copy address",
     h_h: "Transactions", h_refresh: "Refresh", h_empty: "No transactions yet",
+    h_block: "block", h_height: "height", h_tx: "txid", h_detail: "Transaction", h_dir: "direction", h_fee_short: "fee",
+    h_close: "Close", h_self: "Transfer", h_conf: "confirmations", h_none: "—",
     foot_note: "Keys never leave the browser · the server only reads balances and relays transactions",
     foot_src: "Source", foot_pool: "Pool",
     err_pass_short: "Password must be at least 8 characters", err_pass_mismatch: "Passwords do not match",
@@ -234,47 +238,84 @@ function renderHint() {
   el.textContent = d ? `${t("a_avail")} ${formatAmount(d.balance)} NEB` : "";
 }
 
+function shortHash(s, head = 10, tail = 6) {
+  return s && s.length > head + tail ? s.slice(0, head) + "…" + s.slice(-tail) : (s || t("h_none"));
+}
+
 function renderHistory() {
   const list = $("h-list");
   if (!list) return;
   const d = state.data;
   const rows = [];
+  const known = new Set(((d && d.history) || []).map((r) => r.txid));
   for (const p of state.pending) {
-    rows.push({ ts: p.ts, dir: "out", amount: p.amount, label: t("pending"), txid: p.txid });
+    if (known.has(p.txid)) continue;      // it landed, the index has it now
+    const amount = Number(p.amount || 0);
+    rows.push({ dir: "out", amount, pending: true, txid: p.txid, ts: p.ts, height: null, block: "" });
   }
-  if (d) {
-    for (const s of d.spends || []) {
-      rows.push({ ts: s.time * 1000, dir: "out", amount: s.amount, label: `#${s.height}`, txid: s.txid });
-    }
-    for (const u of d.utxos || []) {
-      rows.push({
-        ts: 0, dir: "in", amount: u.amount,
-        label: u.mature ? `#${u.height}` : `${t("pending")} ${u.confirmations}/100`,
-        txid: u.txid,
-      });
-    }
+  for (const h of ((d && d.history) || [])) {
+    // amount is what left/entered the wallet, never the size of the coin that was
+    // spent: a 0.1 payment out of a 1 NEB coin is 0.1, not 1.
+    const dir = h.paid > 0 ? "out" : h.received > 0 && h.spent === 0 ? "in" : h.self ? "self" : h.net >= 0 ? "in" : "out";
+    const amount = dir === "out" ? h.paid : dir === "in" ? (h.spent ? Math.max(0, h.net) : h.received) : 0;
+    rows.push({
+      dir, amount, fee: h.fee || 0,
+      txid: h.txid, ts: (h.time || 0) * 1000, height: h.height, block: h.block || "",
+      conf: h.confirmations, net: h.net,
+    });
   }
   rows.sort((a, b) => (b.ts || 0) - (a.ts || 0));
-  list.innerHTML = "";
+  list.textContent = "";
   $("h-empty").classList.toggle("hidden", rows.length > 0);
-  const add = (parent, cls, text, title) => {
-    const el = document.createElement("span");
-    if (cls) el.className = cls;
-    el.textContent = text;
-    if (title) el.title = title;
-    parent.appendChild(el);
-    return el;
-  };
-  for (const r of rows.slice(0, 100)) {
+
+  for (const r of rows.slice(0, 200)) {
     const div = document.createElement("div");
-    div.className = "item";
-    const sign = r.dir === "in" ? "+" : "−";
-    add(div, r.dir === "in" ? "in" : "out", `${sign}${formatAmount(r.amount)} NEB`);
-    add(div, "muted", r.dir === "in" ? t("in") : t("out"));
-    add(div, "muted", r.label);
-    add(div, "when", r.ts ? new Date(r.ts).toLocaleString() : "", r.txid);
+    div.className = "item click";
+    const sign = r.dir === "in" ? "+" : r.dir === "out" ? "−" : "";
+    const amt = document.createElement("span");
+    amt.className = r.dir === "in" ? "in" : r.dir === "out" ? "out" : "muted";
+    amt.textContent = r.dir === "self"
+      ? `${t("h_fee_short")} ${formatAmount(r.fee || 0)} NEB`
+      : `${sign}${formatAmount(r.amount)} NEB`;
+    const dir = document.createElement("span");
+    dir.className = "muted";
+    dir.textContent = r.pending ? t("pending") : r.dir === "in" ? t("in") : r.dir === "out" ? t("out") : t("h_self");
+    div.append(amt, dir);
+
+    if (r.height !== null && r.height !== undefined) {
+      const hh = document.createElement("span");
+      hh.className = "muted mono";
+      hh.textContent = `#${r.height}`;
+      div.appendChild(hh);
+      const bl = document.createElement("span");
+      bl.className = "muted mono";
+      bl.textContent = shortHash(r.block);
+      bl.title = r.block || "";
+      div.appendChild(bl);
+    }
+    const when = document.createElement("span");
+    when.className = "when";
+    when.textContent = r.ts ? new Date(r.ts).toLocaleString(lang === "zh" ? "zh-CN" : "en-US") : "";
+    when.title = r.txid;
+    div.appendChild(when);
+    div.onclick = () => showTx(r);
     list.appendChild(div);
   }
+}
+
+async function showTx(r) {
+  const rows = [
+    [t("h_dir"), r.pending ? t("pending") : r.dir === "in" ? t("in") : r.dir === "out" ? t("out") : t("h_self")],
+    [t("f_amount"), `${r.dir === "in" ? "+" : r.dir === "out" ? "−" : ""}${formatAmount(r.amount)} NEB`],
+  ];
+  if (r.fee && r.dir !== "in") rows.push([t("f_fee"), formatAmount(r.fee) + " NEB"]);
+  rows.push(
+    [t("h_height"), r.height === null || r.height === undefined ? t("h_none") : String(r.height)],
+    [t("h_conf"), r.conf === undefined ? t("h_none") : String(r.conf)],
+    [t("h_block"), r.block || t("h_none"), true],
+    [t("h_tx"), r.txid, true],
+  );
+  await askConfirm({ title: t("h_detail"), rows, ok: t("h_close"), single: true });
 }
 
 async function refreshPending() {
@@ -448,7 +489,7 @@ async function doUnlock() {
 
 // window.confirm() is blocked outright in some in-app browsers and shows the user a
 // raw string on the one screen that has to be read carefully. Same check, better shape.
-function askConfirm({ title, rows = [], text = "", ok = t("cf_ok") }) {
+function askConfirm({ title, rows = [], text = "", ok = t("cf_ok"), single = false }) {
   return new Promise((resolve) => {
     const box = $("cf");
     $("cf-t").textContent = title;
@@ -471,6 +512,7 @@ function askConfirm({ title, rows = [], text = "", ok = t("cf_ok") }) {
       body.appendChild(row);
     });
     $("cf-no").textContent = t("cf_no");
+    $("cf-no").style.display = single ? "none" : "";   // [hidden] loses to .btn{display:inline-flex}
     $("cf-yes").textContent = ok;
     box.hidden = false;
     const close = (answer) => {

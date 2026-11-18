@@ -265,8 +265,64 @@ class Index:
                           "confirmations": tip - height + 1})
         return {"lock": lock, "balance": balance, "immature": immature,
                 "utxos": utxos,
+                "history": self.history(lock, tip),
                 "spends": [{"txid": t, "height": h, "time": ts, "amount": a}
                            for t, h, ts, a in history if t]}
+
+    def history(self, lock: str, tip: int, limit: int = 60) -> list:
+        """One row per transaction that touched this address.
+
+        The first version listed unspent coins as 收款 and spent coins as 发送, which
+        showed a 1 NEB coin as "sent 1 NEB" when 0.1 left the wallet, and hid every
+        coin that had already been spent (the purchase itself disappeared). Aggregate
+        by txid instead: outputs to me minus inputs from me is what actually moved.
+        """
+        with closing(self.connect()) as db:
+            rows = db.execute(
+                "SELECT txid, amount, height, spent_height, spent_by FROM utxos WHERE lock=?",
+                (lock,)).fetchall()
+            heights = {h: (hsh, t) for h, hsh, t in
+                       db.execute("SELECT height, hash, time FROM blocks").fetchall()}
+        mine_out: dict[str, int] = {}
+        spend_of: dict[str, int] = {}
+        tx_height: dict[str, int] = {}
+        for txid, amount, height, spent_height, spent_by in rows:
+            mine_out[txid] = mine_out.get(txid, 0) + amount
+            tx_height[txid] = height
+            if spent_by:
+                spend_of[spent_by] = spend_of.get(spent_by, 0) + amount
+                tx_height.setdefault(spent_by, spent_height)
+        out = []
+        for txid in set(mine_out) | set(spend_of):
+            got = mine_out.get(txid, 0)
+            spent = spend_of.get(txid, 0)
+            height = tx_height.get(txid)
+            hsh, ts = heights.get(height, ("", 0))
+            with closing(self.connect()) as db:
+                total_out = db.execute("SELECT COALESCE(SUM(amount),0) FROM utxos WHERE txid=?",
+                                       (txid,)).fetchone()[0]
+                total_in = db.execute("SELECT COALESCE(SUM(amount),0) FROM utxos WHERE spent_by=?",
+                                      (txid,)).fetchone()[0]
+            # what actually left the address: outputs that are not change coming back
+            # only meaningful when this address is one of the spenders; a batch payout
+            # to 200 people would otherwise read as "you sent 173 NEB"
+            paid = max(0, total_out - got) if spent else 0
+            fee = max(0, total_in - total_out)
+            out.append({
+                "txid": txid,
+                "height": height,
+                "block": hsh,
+                "time": ts,
+                "received": got,
+                "spent": spent,
+                "paid": paid,
+                "fee": fee,
+                "net": got - spent,
+                "self": bool(spent and paid == 0),
+                "confirmations": (tip - height + 1) if height is not None else 0,
+            })
+        out.sort(key=lambda r: (-(r["height"] or 0), r["txid"]))
+        return out[:limit]
 
     def recently_spent(self, lock: str) -> list:
         with closing(self.connect()) as db:
