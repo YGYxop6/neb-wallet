@@ -410,7 +410,13 @@ function ok(id, message) {
   el.classList.add("ok");
 }
 
-async function copy(text) {
+async function copy(text, clearAfterMs = 0) {
+  if (clearAfterMs) {
+    // a private key should not sit in the clipboard for the rest of the day
+    setTimeout(() => {
+      if (!document.hidden) navigator.clipboard.writeText("").catch(() => {});
+    }, clearAfterMs);
+  }
   // navigator.clipboard can stay pending when the page is not focused or the
   // click is not an activation (automation, some in-app browsers), and that
   // used to leave the button stuck. Race it, then fall back to a selection.
@@ -440,6 +446,9 @@ async function copy(text) {
 }
 
 function lockNow() {
+  // drop the pointer *and* overwrite the bytes: a Uint8Array left in memory
+  // can be read from a heap dump or a crash report
+  if (state.secret && state.secret.fill) state.secret.fill(0);
   state.secret = null;
   state.data = null;
   stopPoll();
@@ -577,12 +586,13 @@ function askConfirm({ title, rows = [], text = "", ok = t("cf_ok"), single = fal
     cb.style.display = copyWhat ? "" : "none";
     if (copyWhat) {
       cb.textContent = copyWhat.label;
-      cb.onclick = () => { copy(copyWhat.value); cb.textContent = t("copied"); };
+      cb.onclick = () => { copy(copyWhat.value, copyWhat.clearAfterMs || 0); cb.textContent = t("copied"); };
     }
     $("cf-yes").textContent = ok;
     box.hidden = false;
     const close = (answer) => {
       box.hidden = true;
+      body.textContent = "";        // a shown private key must not stay in the DOM
       $("cf-yes").onclick = null;
       $("cf-no").onclick = null;
       resolve(answer);
@@ -618,6 +628,7 @@ function askInput({ title, label, ok, error = "" }) {
     setTimeout(() => input.focus(), 30);
     const done = (value) => {
       box.hidden = true;
+      $("cf-b").textContent = "";
       wrap.hidden = true;
       $("cf-yes").onclick = null;
       $("cf-no").onclick = null;
@@ -637,7 +648,7 @@ function showKey(secret) {
     rows: [[t("f_address"), state.address, true],
            [t("f_secret"), toHex(secret), true]],
     ok: t("h_close"), single: true,
-    copy: { label: t("ex_copy"), value: toHex(secret) },
+    copy: { label: t("ex_copy"), value: toHex(secret), clearAfterMs: 60000 },
   });
 }
 
@@ -790,6 +801,7 @@ function init() {
     document.addEventListener(ev, touchIdle, { passive: true });
   }
   setInterval(checkIdle, 15000);
+  addEventListener("pagehide", () => { if (state.secret && state.secret.fill) state.secret.fill(0); });
   document.addEventListener("visibilitychange", () => {
     if (document.hidden && state.secret) lockNow();
   });
