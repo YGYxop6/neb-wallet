@@ -87,6 +87,8 @@
   .err{border:1px solid #ff6b7a44;background:#ff6b7a0d;border-radius:4px;padding:10px 12px;color:var(--r);font-size:12px;margin:0 0 14px}
   .ok{border:1px solid #87ff8744;background:#87ff870d;border-radius:4px;padding:10px 12px;color:var(--g);font-size:12px;margin:0 0 14px;word-break:break-all}
   .hidden{display:none !important}
+  .conn{margin:12px 0 0;padding:9px 11px;border:1px solid #5c3b1b;background:#241b0d;color:#ffd79a;
+    font-size:12px;line-height:1.6;border-radius:6px}
   /* ---- motion: a wallet should show that it is working, not just sit there ---- */
   @keyframes wEnter{0%{opacity:0;transform:translateY(8px)}100%{opacity:1;transform:none}}
   @keyframes wRowIn{0%{opacity:0;background:#87ff8722;transform:translateX(-10px)}100%{opacity:1;background:transparent;transform:none}}
@@ -241,6 +243,8 @@
       <button class="btn ghost" id="a-lock" data-i18n="a_lock">锁定</button>
       <button class="btn ghost" id="a-forget" data-i18n="a_forget">删除</button>
     </div>
+
+    <div class="conn" id="conn" hidden></div>
 
     <div class="tiles">
       <div class="tile"><div class="k" data-i18n="a_avail">可用余额</div><div class="bignum" id="a-bal">–<small>NEB</small></div></div>

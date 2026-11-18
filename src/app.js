@@ -44,6 +44,8 @@ const I18N = {
     a_key: "私钥", ex_title: "导出私钥", ex_copy: "复制私钥",
     key_pass_title: "输入钱包密码", key_pass_label: "密码", key_pass_ok: "查看私钥",
     key_pass_bad: "密码不正确",
+    b_copy_key: "复制私钥", b_enter: "进入钱包",
+    conn_down: "⚠️ 连不上服务器 —— 余额和记录暂时看不到。币在链上、私钥在你手里，服务器出问题不影响你的资金，恢复后会自动更新。",
     ex_warn: "这串字符谁拿到都能把币转走。只抄在纸上，不要截图、不要发聊天工具。",
     h_close: "关闭", h_self: "转账", h_conf: "确认", h_none: "—",
     foot_note: "私钥从不上传 · 服务器只提供余额查询与交易广播",
@@ -91,6 +93,8 @@ const I18N = {
     a_key: "Key", ex_title: "Export private key", ex_copy: "Copy key",
     key_pass_title: "Wallet password", key_pass_label: "password", key_pass_ok: "Show key",
     key_pass_bad: "Wrong password",
+    b_copy_key: "Copy key", b_enter: "Open wallet",
+    conn_down: "⚠️ Cannot reach the server — balance and history are unavailable for now. Your coins are on chain and the key is in this browser, so the server cannot touch them. This page refreshes by itself.",
     ex_warn: "Anyone holding this string can move your coins. Write it on paper only — never a screenshot or a chat.",
     h_close: "Close", h_self: "Transfer", h_conf: "confirmations", h_none: "—",
     foot_note: "Keys never leave the browser · the server only reads balances and relays transactions",
@@ -220,12 +224,17 @@ async function loadData() {
   if (!state.address) return;
   try {
     state.data = await fetchAddress(state.address);
+    const banner = $("conn");
+    if (banner) banner.hidden = true;
     renderBalance();
     renderHistory();
     renderHint();
     await refreshPending();
   } catch (err) {
-    // keep the last figures on a hiccup, the page is not the source of truth
+    // keep the last figures on a hiccup, the page is not the source of truth,
+    // but say out loud that the numbers are stale
+    const el = $("conn");
+    if (el) { el.hidden = false; el.textContent = t("conn_down"); }
   }
 }
 
@@ -500,11 +509,11 @@ function showBackup(secret, address) {
   copyBtn.onclick = () => copy(address);
   const copyKey = document.createElement("button");
   copyKey.className = "btn";
-  copyKey.textContent = t("reveal");
+  copyKey.textContent = t("b_copy_key");
   copyKey.onclick = () => copy(key);
   const done = document.createElement("button");
   done.className = "btn primary";
-  done.textContent = "→";
+  done.textContent = t("b_enter");
   done.onclick = () => { view.textContent = ""; openWallet(); };
   row.append(copyBtn, copyKey, done);
   box.append(heading, warning, field(t("f_address"), address), keyField, row);
