@@ -1,0 +1,20 @@
+{
+  "name": "neb-web-wallet",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Non-custodial NEB wallet that runs in the browser: keys never leave the page.",
+  "scripts": {
+    "test": "node test/vectors.mjs && node test/payment.mjs",
+    "build": "node build.mjs",
+    "test:payment": "node test/payment.mjs"
+  },
+  "dependencies": {
+    "@noble/curves": "^2.0.0",
+    "@noble/hashes": "^2.0.0",
+    "qrcode-generator": "^2.0.4"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0"
+  }
+}

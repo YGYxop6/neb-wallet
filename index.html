@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="zh">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NEB 钱包 · argonpool.com</title>
+<meta name="theme-color" content="#0a0a0a">
+<!--
+  Strict CSP: no inline script, no third-party script, and connect-src 'self'
+  means this page can only talk to argonpool.com. The bundle is built from the
+  public repository; its SHA-256 is printed in the footer so anyone can check
+  what the server is actually serving.
+-->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'">
+<style>
+  :root{
+    --bg:#0a0a0a; --panel:#121212; --panel2:#171717; --line:#262626; --line2:#343434;
+    --fg:#fff; --mid:#bcbcbc; --dim:gray; --faint:#444;
+    --g:#87ff87; --glow:#d7ffd7; --c:#69d6ff; --y:#ffc66d; --p:#c3a6ff; --r:#ff6b7a;
+    --font:"JetBrains Mono","Cascadia Mono",ui-monospace,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{background:var(--bg)}
+  body{margin:0;color:var(--mid);font:13px/1.65 var(--font);-webkit-font-smoothing:antialiased}
+  a{color:inherit;text-decoration:none}
+  a:hover{color:var(--g)}
+  button{font:inherit}
+  .top{display:flex;align-items:center;gap:16px;height:46px;padding:0 18px;
+       border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--bg);z-index:20}
+  .brand{display:flex;align-items:center;gap:10px;color:var(--fg);font-weight:500;white-space:nowrap}
+  .top nav{display:flex;gap:16px;font-size:12px;color:var(--dim)}
+  .top nav a.on{color:var(--g)}
+  .pill{border:1px solid var(--line);border-radius:999px;padding:1px 10px;font-size:12px;color:var(--mid)}
+  .search{display:flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:4px;
+          background:#0d0d0d;padding:4px 8px;min-width:0}
+  .search input{background:none;border:0;outline:0;color:var(--fg);font:inherit;font-size:12px;width:200px}
+  .search input::placeholder{color:#5a5a5a}
+  .search button{background:none;border:0;color:var(--g);font:inherit;font-size:12px;cursor:pointer;padding:0 2px}
+  .grow{flex:1}
+  .lang{display:flex;gap:2px;border:1px solid var(--line);border-radius:4px;overflow:hidden}
+  .lang button{background:none;border:0;color:var(--dim);font-size:11px;padding:3px 8px;cursor:pointer}
+  .lang button.on{background:#87ff871a;color:var(--g)}
+  main{max-width:860px;margin:0 auto;padding:34px 22px 60px;min-height:calc(100vh - 100px)}
+  h1{font-size:22px;color:var(--fg);font-weight:500;margin:0 0 6px}
+  h2{font-size:13px;color:var(--fg);font-weight:500;margin:0 0 12px;letter-spacing:.04em;text-transform:uppercase}
+  p{margin:0 0 12px}
+  .muted{color:var(--dim)}
+  .card{border:1px solid var(--line);border-radius:6px;background:var(--panel);padding:18px;margin:0 0 16px}
+  .row{display:flex;gap:10px;flex-wrap:wrap}
+  .row>*{flex:1 1 200px}
+  .field{display:flex;flex-direction:column;gap:6px;margin:0 0 14px}
+  .field label{font-size:11px;color:var(--dim);letter-spacing:.06em;text-transform:uppercase}
+  input,textarea,select{background:#0d0d0d;border:1px solid var(--line);border-radius:4px;color:var(--fg);
+    padding:9px 11px;font:inherit;font-size:13px;width:100%;outline:0}
+  input:focus,textarea:focus{border-color:var(--line2)}
+  textarea{min-height:84px;resize:vertical;word-break:break-all}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px solid var(--line2);
+    border-radius:4px;background:var(--panel2);color:var(--fg);padding:9px 16px;cursor:pointer;font-size:13px}
+  .btn:hover{border-color:var(--g);color:var(--g)}
+  .btn.primary{background:#87ff8714;border-color:#87ff8755;color:var(--g)}
+  .btn.primary:hover{background:#87ff8722}
+  .btn.ghost{background:none;color:var(--dim)}
+  .btn:disabled{opacity:.45;cursor:not-allowed}
+  .btn.danger{color:var(--r);border-color:#ff6b7a44}
+  .bignum{font-size:26px;color:var(--fg);letter-spacing:-.01em}
+  .bignum small{font-size:13px;color:var(--dim);margin-left:6px}
+  .tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:0 0 16px}
+  .tile{border:1px solid var(--line);border-radius:6px;background:var(--panel);padding:14px 16px}
+  .tile .k{font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.06em}
+  .addr{font-size:12px;word-break:break-all;color:var(--fg);line-height:1.5}
+  .tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);margin:0 0 16px}
+  .tabs button{background:none;border:0;border-bottom:2px solid transparent;color:var(--dim);
+    padding:8px 14px;cursor:pointer;font-size:12px}
+  .tabs button.on{color:var(--g);border-bottom-color:var(--g)}
+  .list{display:flex;flex-direction:column}
+  .item{display:flex;align-items:baseline;gap:10px;padding:9px 0;border-bottom:1px solid #1b1b1b;font-size:12px}
+  .item .amt{color:var(--fg)}
+  .item .in{color:var(--g)}
+  .item .out{color:var(--y)}
+  .item .when{color:var(--faint);margin-left:auto;white-space:nowrap}
+  .note{border-left:2px solid var(--line2);padding:2px 0 2px 12px;color:var(--dim);font-size:12px;margin:0 0 14px}
+  .warn{border:1px solid #ffc66d33;background:#ffc66d0d;border-radius:4px;padding:10px 12px;color:var(--y);font-size:12px;margin:0 0 14px}
+  .err{border:1px solid #ff6b7a44;background:#ff6b7a0d;border-radius:4px;padding:10px 12px;color:var(--r);font-size:12px;margin:0 0 14px}
+  .ok{border:1px solid #87ff8744;background:#87ff870d;border-radius:4px;padding:10px 12px;color:var(--g);font-size:12px;margin:0 0 14px;word-break:break-all}
+  .hidden{display:none !important}
+  .kick{font-size:11px;color:var(--faint);letter-spacing:.12em;text-transform:uppercase}
+  .qr{background:#fff;padding:10px;border-radius:6px;width:200px;height:200px;display:flex;align-items:center;justify-content:center}
+  .qr svg{width:100%;height:100%;display:block}
+  .foot{color:var(--faint);font-size:11px;text-align:center;padding:18px 0 0;line-height:1.8}
+  .foot code{color:var(--dim);word-break:break-all}
+  .flexline{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .spacer{flex:1}
+  @media(max-width:640px){ .tiles{grid-template-columns:1fr} main{padding:20px 14px 44px} }
+</style>
+
+<header class="top">
+  <div class="brand">
+    <svg width="16" height="18" viewBox="0 0 24 26" aria-hidden="true">
+      <polygon points="12,0 23,6 12,12 1,6" fill="#d7ffd7"/>
+      <polygon points="1,6 12,12 12,25 1,19" fill="#87ff87"/>
+      <polygon points="12,12 23,6 23,19 12,25" fill="#4fd14f"/>
+    </svg>
+    <span>neb pool</span>
+    <span class="pill" id="pill" data-i18n="mainnet">mainnet</span>
+  </div>
+  <nav><a href="/" data-i18n="nav_pool">矿池</a><a href="/miners.html" data-i18n="nav_miners">矿工</a><a href="/#blocks" data-i18n="nav_blocks">出块</a><a href="/wallet/" class="on" data-i18n="nav_wallet">钱包</a></nav>
+  <div class="grow"></div>
+  <div class="search">
+    <input id="q" data-i18n-ph="search_ph" placeholder="搜索地址 neb1…" autocomplete="off" spellcheck="false">
+    <button id="qbtn" data-i18n="search_btn">查询</button>
+  </div>
+  <div class="lang">
+    <button data-lang="zh" class="on">中文</button>
+    <button data-lang="en">EN</button>
+  </div>
+</header>
+
+<main>
+  <!-- ---------------------------------------------------------- welcome -->
+  <section id="view-welcome">
+    <div class="kick" data-i18n="w_kick">NEB · 非托管钱包</div>
+    <h1 data-i18n="w_h1">钱包只在你的浏览器里</h1>
+    <p class="muted" data-i18n="w_p1">私钥在你的设备上生成并加密保存，永远不会发到服务器。服务器只提供余额查询和交易广播，就算它被完全攻破，也动不了你的币。</p>
+    <div class="card">
+      <div class="row">
+        <button class="btn primary" id="go-create" data-i18n="w_create">创建新钱包</button>
+        <button class="btn" id="go-import" data-i18n="w_import">导入私钥</button>
+        <button class="btn ghost" id="go-watch" data-i18n="w_watch">只看地址</button>
+      </div>
+    </div>
+    <div class="note" data-i18n="w_note">创建后会给你一串私钥（64 位十六进制），它同时也是恢复钱包的唯一凭据。抄下来离线保存，丢了谁也找不回来。</div>
+  </section>
+
+  <!-- ---------------------------------------------------------- create -->
+  <section id="view-create" class="hidden">
+    <div class="kick" data-i18n="c_kick">创建钱包</div>
+    <h1 data-i18n="c_h1">设一个密码</h1>
+    <p class="muted" data-i18n="c_p1">密码只用来在本机加密私钥，不上传。忘记密码只能用私钥重新导入。</p>
+    <div class="card">
+      <div class="field"><label data-i18n="f_password">密码</label><input id="c-pass" type="password" autocomplete="new-password"></div>
+      <div class="field"><label data-i18n="f_password2">再输一次</label><input id="c-pass2" type="password" autocomplete="new-password"></div>
+      <div id="c-err" class="err hidden"></div>
+      <div class="row"><button class="btn primary" id="c-go" data-i18n="c_go">生成钱包</button>
+        <button class="btn ghost" id="c-back" data-i18n="f_back">返回</button></div>
+    </div>
+  </section>
+
+  <!-- ---------------------------------------------------------- import -->
+  <section id="view-import" class="hidden">
+    <div class="kick" data-i18n="i_kick">导入钱包</div>
+    <h1 data-i18n="i_h1">粘贴私钥</h1>
+    <p class="muted" data-i18n="i_p1">64 位十六进制的 Ed25519 私钥，和官方 neb-wallet 导出的一致。私钥只在这台设备的这个页面里使用。</p>
+    <div class="card">
+      <div class="field"><label data-i18n="f_secret">私钥</label><textarea id="i-secret" spellcheck="false" placeholder="64 hex characters"></textarea></div>
+      <div class="field"><label data-i18n="f_password">密码</label><input id="i-pass" type="password" autocomplete="new-password"></div>
+      <div class="field"><label data-i18n="f_password2">再输一次</label><input id="i-pass2" type="password" autocomplete="new-password"></div>
+      <div id="i-err" class="err hidden"></div>
+      <div class="row"><button class="btn primary" id="i-go" data-i18n="i_go">导入</button>
+        <button class="btn ghost" id="i-back" data-i18n="f_back">返回</button></div>
+    </div>
+  </section>
+
+  <!-- ---------------------------------------------------------- watch -->
+  <section id="view-watch" class="hidden">
+    <div class="kick" data-i18n="wt_kick">观察地址</div>
+    <h1 data-i18n="wt_h1">只看余额，不碰私钥</h1>
+    <p class="muted" data-i18n="wt_p1">输入任何一个 neb1 地址，可以看余额和历史，但不能发送。</p>
+    <div class="card">
+      <div class="field"><label data-i18n="f_address">地址</label><input id="wt-addr" spellcheck="false" placeholder="neb1..."></div>
+      <div id="wt-err" class="err hidden"></div>
+      <div class="row"><button class="btn primary" id="wt-go" data-i18n="wt_go">查看</button>
+        <button class="btn ghost" id="wt-back" data-i18n="f_back">返回</button></div>
+    </div>
+  </section>
+
+  <!-- ---------------------------------------------------------- unlock -->
+  <section id="view-unlock" class="hidden">
+    <div class="kick" data-i18n="u_kick">已锁定</div>
+    <h1 data-i18n="u_h1">输入密码解锁</h1>
+    <div class="card">
+      <div class="addr" id="u-addr" style="margin:0 0 14px"></div>
+      <div class="field"><label data-i18n="f_password">密码</label><input id="u-pass" type="password" autocomplete="current-password"></div>
+      <div id="u-err" class="err hidden"></div>
+      <div class="row"><button class="btn primary" id="u-go" data-i18n="u_go">解锁</button>
+        <button class="btn ghost" id="u-forget" data-i18n="u_forget">删除本机钱包</button></div>
+    </div>
+  </section>
+
+  <!-- ---------------------------------------------------------- wallet -->
+  <section id="view-wallet" class="hidden">
+    <div class="flexline" style="margin:0 0 14px">
+      <div>
+        <div class="kick" data-i18n="a_kick">我的钱包</div>
+        <div class="addr" id="a-addr"></div>
+      </div>
+      <div class="spacer"></div>
+      <button class="btn ghost" id="a-lock" data-i18n="a_lock">锁定</button>
+      <button class="btn ghost" id="a-forget" data-i18n="a_forget">删除</button>
+    </div>
+
+    <div class="tiles">
+      <div class="tile"><div class="k" data-i18n="a_avail">可用余额</div><div class="bignum" id="a-bal">–<small>NEB</small></div></div>
+      <div class="tile"><div class="k" data-i18n="a_immature">待成熟</div><div class="bignum" id="a-imm">–<small>NEB</small></div></div>
+      <div class="tile"><div class="k" data-i18n="a_height">区块高度</div><div class="bignum" id="a-height">–</div></div>
+    </div>
+
+    <div class="tabs">
+      <button id="tab-send" class="on" data-i18n="t_send">发送</button>
+      <button id="tab-receive" data-i18n="t_receive">接收</button>
+      <button id="tab-history" data-i18n="t_history">历史</button>
+    </div>
+
+    <div id="pane-send">
+      <div class="card">
+        <div class="field"><label data-i18n="f_to">收款地址</label><input id="s-to" spellcheck="false" placeholder="neb1..."></div>
+        <div class="row">
+          <div class="field"><label data-i18n="f_amount">金额 (NEB)</label><input id="s-amount" inputmode="decimal" placeholder="0.0"></div>
+          <div class="field"><label data-i18n="f_fee">手续费 (NEB)</label><input id="s-fee" inputmode="decimal" value="0.0001"></div>
+        </div>
+        <div class="flexline" style="margin:0 0 14px">
+          <button class="btn ghost" id="s-max" data-i18n="s_max">全部发送</button>
+          <span class="muted" id="s-hint"></span>
+        </div>
+        <div id="s-msg" class="hidden"></div>
+        <div class="row"><button class="btn primary" id="s-go" data-i18n="s_go">签名并发送</button></div>
+      </div>
+      <div class="note" data-i18n="s_note">交易在这台设备上签名，服务器只负责转发。签名前会显示收款地址和金额，请核对后再确认。</div>
+    </div>
+
+    <div id="pane-receive" class="hidden">
+      <div class="card">
+        <div class="flexline" style="align-items:flex-start;gap:18px">
+          <div class="qr" id="r-qr"></div>
+          <div style="flex:1;min-width:220px">
+            <div class="kick" data-i18n="r_kick">收款地址</div>
+            <div class="addr" id="r-addr" style="margin:6px 0 14px"></div>
+            <button class="btn" id="r-copy" data-i18n="r_copy">复制地址</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="pane-history" class="hidden">
+      <div class="card">
+        <div class="flexline" style="margin:0 0 8px"><h2 style="margin:0" data-i18n="h_h">交易记录</h2><div class="spacer"></div>
+          <button class="btn ghost" id="h-refresh" data-i18n="h_refresh">刷新</button></div>
+        <div class="list" id="h-list"></div>
+        <div class="muted" id="h-empty" data-i18n="h_empty" style="padding:12px 0">还没有交易</div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div class="foot">
+  <div data-i18n="foot_note">私钥从不上传 · 服务器只提供余额查询与交易广播</div>
+  <div><a href="https://github.com/YGYxop6/neb-wallet" id="repo-link" data-i18n="foot_src">源代码</a> ·
+    <a href="/" data-i18n="foot_pool">矿池</a> ·
+    <span id="build-hash">build</span></div>
+</div>
+
+<script src="/wallet/app.js"></script>
+</html>
