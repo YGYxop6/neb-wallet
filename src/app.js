@@ -32,7 +32,7 @@ const I18N = {
     wt_p1: "输入任何一个 neb1 地址，可以看余额和历史，但不能发送。",
     f_address: "地址", wt_go: "查看",
     u_kick: "已锁定", u_h1: "输入密码解锁", u_go: "解锁", u_forget: "删除本机钱包",
-    a_kick: "我的钱包", a_lock: "锁定", a_forget: "删除",
+    a_kick: "我的钱包", a_lock: "锁定", a_forget: "删除", a_copy: "复制地址",
     a_avail: "可用余额", a_immature: "待成熟", a_height: "区块高度",
     t_send: "发送", t_receive: "接收", t_history: "历史",
     f_to: "收款地址", f_amount: "金额 (NEB)", f_fee: "手续费 (NEB)",
@@ -49,7 +49,8 @@ const I18N = {
     backup_title: "钱包已创建，立即备份私钥",
     backup_body: "这串私钥是你资产的唯一凭据。抄在纸上离线保存，不要截图、不要发到聊天工具。服务器上没有副本，丢了无法恢复。",
     reveal: "显示私钥", reveal_confirm: "再次输入密码以显示私钥",
-    copied: "已复制", confirm_send: "确认发送这笔交易？",
+    copied: "已复制", confirm_send: "确认发送这笔交易？", cf_ok: "确认发送", cf_no: "取消",
+    cf_inputs: "输入数", cf_delete: "删除钱包",
     sent: "已广播", pending: "待确认", confirmed: "已确认",
     in: "收款", out: "发送", watch_only: "观察模式（不能发送）",
     send_disabled_watch: "观察模式不能发送", no_wallet: "本机还没有钱包",
@@ -72,7 +73,7 @@ const I18N = {
     wt_p1: "Enter any neb1 address to see its balance and history. Sending is disabled.",
     f_address: "Address", wt_go: "Look up",
     u_kick: "Locked", u_h1: "Enter password", u_go: "Unlock", u_forget: "Delete local wallet",
-    a_kick: "My wallet", a_lock: "Lock", a_forget: "Delete",
+    a_kick: "My wallet", a_lock: "Lock", a_forget: "Delete", a_copy: "Copy address",
     a_avail: "Available", a_immature: "Immature", a_height: "Block height",
     t_send: "Send", t_receive: "Receive", t_history: "History",
     f_to: "To", f_amount: "Amount (NEB)", f_fee: "Fee (NEB)",
@@ -89,7 +90,8 @@ const I18N = {
     backup_title: "Wallet created — back up the key now",
     backup_body: "This key is the only proof of ownership. Write it on paper, offline. No screenshot, no chat apps. There is no copy on the server and no way to recover it.",
     reveal: "Show key", reveal_confirm: "Enter the password again to show the key",
-    copied: "Copied", confirm_send: "Send this transaction?",
+    copied: "Copied", confirm_send: "Send this transaction?", cf_ok: "Sign & send", cf_no: "Cancel",
+    cf_inputs: "inputs", cf_delete: "Remove wallet",
     sent: "Broadcast", pending: "Pending", confirmed: "Confirmed",
     in: "Received", out: "Sent", watch_only: "Watch mode (cannot send)",
     send_disabled_watch: "Watch mode cannot send", no_wallet: "No wallet on this device",
@@ -308,15 +310,31 @@ function ok(id, message) {
 }
 
 async function copy(text) {
+  // navigator.clipboard can stay pending when the page is not focused or the
+  // click is not an activation (automation, some in-app browsers), and that
+  // used to leave the button stuck. Race it, then fall back to a selection.
   try {
-    await navigator.clipboard.writeText(text);
+    const writing = navigator.clipboard.writeText(text);
+    await Promise.race([
+      writing,
+      new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), 600)),
+    ]);
+    return true;
   } catch (err) {
-    const ta = document.createElement("textarea");
-    ta.value = text;
-    document.body.appendChild(ta);
-    ta.select();
-    document.execCommand("copy");
-    ta.remove();
+    try {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.setAttribute("readonly", "");
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      ta.remove();
+      return true;
+    } catch (err2) {
+      return false;
+    }
   }
 }
 
@@ -428,6 +446,44 @@ async function doUnlock() {
   }
 }
 
+// window.confirm() is blocked outright in some in-app browsers and shows the user a
+// raw string on the one screen that has to be read carefully. Same check, better shape.
+function askConfirm({ title, rows = [], text = "", ok = t("cf_ok") }) {
+  return new Promise((resolve) => {
+    const box = $("cf");
+    $("cf-t").textContent = title;
+    const body = $("cf-b");
+    body.textContent = "";
+    if (text) {
+      const p = document.createElement("div");
+      p.textContent = text;
+      body.appendChild(p);
+    }
+    rows.forEach(([k, v, mono]) => {
+      const row = document.createElement("div");
+      row.className = "cf-row";
+      const ka = document.createElement("span");
+      ka.textContent = k;
+      const vb = document.createElement("b");
+      vb.textContent = v;
+      if (mono) { vb.classList.add("cf-mono"); row.classList.add("stack"); }
+      row.append(ka, vb);
+      body.appendChild(row);
+    });
+    $("cf-no").textContent = t("cf_no");
+    $("cf-yes").textContent = ok;
+    box.hidden = false;
+    const close = (answer) => {
+      box.hidden = true;
+      $("cf-yes").onclick = null;
+      $("cf-no").onclick = null;
+      resolve(answer);
+    };
+    $("cf-yes").onclick = () => close(true);
+    $("cf-no").onclick = () => close(false);
+  });
+}
+
 async function doSend() {
   if (!state.secret) return fail("s-msg", t("err_locked"));
   let toLock;
@@ -452,10 +508,17 @@ async function doSend() {
   }
   const short = state.address.slice(0, 14) + "…" + state.address.slice(-6);
   const to = $("s-to").value.trim();
-  const message = `${t("confirm_send")}\n\n→ ${to}\n${formatAmount(amount)} NEB  (fee ${formatAmount(fee)})\n` +
-    `${built.inputs} input(s), ${t("a_avail")} ${short}`;
-  if (!confirm(message)) return;
-
+  const go = await askConfirm({
+    title: t("confirm_send"),
+    rows: [
+      [t("f_to"), to, true],
+      [t("f_amount"), formatAmount(amount) + " NEB"],
+      [t("f_fee"), formatAmount(fee) + " NEB"],
+      [t("cf_inputs"), String(built.inputs)],
+      [t("a_kick"), short, true],
+    ],
+  });
+  if (!go) return;
   try {
     $("s-go").disabled = true;
     const id = await broadcast(built.hex);
@@ -509,12 +572,21 @@ function init() {
   $("u-go").onclick = doUnlock;
   $("u-pass").onkeydown = (e) => { if (e.key === "Enter") doUnlock(); };
 
+  $("a-copy").onclick = () => {
+    const b = $("a-copy");
+    const was = b.dataset.label || b.textContent;
+    b.dataset.label = was;
+    b.textContent = t("copied");
+    setTimeout(() => { b.textContent = b.dataset.label; }, 1400);
+    copy(state.address);
+  };
   $("a-lock").onclick = lockNow;
-  $("a-forget").onclick = () => {
+  $("a-forget").onclick = async () => {
     const msg = lang === "zh"
       ? "删除后本机不再保存这个钱包，只能靠私钥重新导入。确定？"
       : "This removes the wallet from this browser. You will need the key to restore it. Continue?";
-    if (!confirm(msg)) return;
+    const goDel = await askConfirm({ title: t("cf_delete"), text: msg, ok: t("cf_delete") });
+    if (!goDel) return;
     store.remove();
     lockNow();
   };

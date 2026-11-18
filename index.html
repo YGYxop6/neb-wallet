@@ -90,6 +90,23 @@
   .flexline{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
   .spacer{flex:1}
   @media(max-width:640px){ .tiles{grid-template-columns:1fr} main{padding:20px 14px 44px} }
+
+  .cf{position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;
+    padding:20px;background:#000b}
+  .cf[hidden]{display:none}
+  .cf-box{width:100%;max-width:520px;background:var(--panel,#0e0e0e);border:1px solid var(--line,#2a2a2a);
+    border-radius:8px;padding:18px 20px;box-shadow:0 20px 60px #0009}
+  .cf-t{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim,#8b8b8b);margin-bottom:14px}
+  .cf-b{font-size:13px;line-height:1.7;color:var(--fg,#ddd)}
+  .cf-row{display:flex;justify-content:space-between;gap:18px;padding:7px 0;border-bottom:1px dashed #222}
+  .cf-row:last-child{border-bottom:0}
+  .cf-row > span{flex:0 0 auto;white-space:nowrap;color:var(--dim,#8b8b8b)}
+  .cf-row b{flex:1 1 auto;min-width:0;font-variant-numeric:tabular-nums;text-align:right}
+  /* a 62-character address never fits beside its label: put it on its own line */
+  .cf-row.stack{display:block}
+  .cf-row.stack b{display:block;text-align:left;margin-top:3px}
+  .cf-mono{font-family:ui-monospace,Menlo,consolas,monospace;font-size:12px;word-break:break-all}
+  .cf-a{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}
 </style>
 
 <header class="top">
@@ -193,6 +210,7 @@
         <div class="addr" id="a-addr"></div>
       </div>
       <div class="spacer"></div>
+      <button class="btn ghost" id="a-copy" data-i18n="a_copy">复制地址</button>
       <button class="btn ghost" id="a-lock" data-i18n="a_lock">锁定</button>
       <button class="btn ghost" id="a-forget" data-i18n="a_forget">删除</button>
     </div>
@@ -255,6 +273,17 @@
   <div><a href="https://github.com/YGYxop6/neb-wallet" id="repo-link" data-i18n="foot_src">源代码</a> ·
     <a href="/" data-i18n="foot_pool">矿池</a> ·
     <span id="build-hash">build</span></div>
+</div>
+
+<div class="cf" id="cf" hidden>
+  <div class="cf-box" role="dialog" aria-modal="true" aria-labelledby="cf-t">
+    <div class="cf-t" id="cf-t"></div>
+    <div class="cf-b" id="cf-b"></div>
+    <div class="cf-a">
+      <button class="btn ghost" id="cf-no"></button>
+      <button class="btn" id="cf-yes"></button>
+    </div>
+  </div>
 </div>
 
 <script src="/wallet/app.js"></script>
