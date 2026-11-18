@@ -292,17 +292,29 @@ class Index:
             if spent_by:
                 spend_of[spent_by] = spend_of.get(spent_by, 0) + amount
                 tx_height.setdefault(spent_by, spent_height)
+        txids = sorted(set(mine_out) | set(spend_of))
+        # two aggregate queries for the whole page instead of two per transaction:
+        # the per-row version opened ~120 sqlite connections per address request
+        totals_out, totals_in = {}, {}
+        if txids:
+            marks = ",".join("?" * len(txids))
+            with closing(self.connect()) as db:
+                for t, s_ in db.execute(
+                        f"SELECT txid, SUM(amount) FROM utxos WHERE txid IN ({marks}) GROUP BY txid",
+                        txids):
+                    totals_out[t] = s_
+                for t, s_ in db.execute(
+                        f"SELECT spent_by, SUM(amount) FROM utxos WHERE spent_by IN ({marks}) GROUP BY spent_by",
+                        txids):
+                    totals_in[t] = s_
         out = []
-        for txid in set(mine_out) | set(spend_of):
+        for txid in txids:
             got = mine_out.get(txid, 0)
             spent = spend_of.get(txid, 0)
             height = tx_height.get(txid)
             hsh, ts = heights.get(height, ("", 0))
-            with closing(self.connect()) as db:
-                total_out = db.execute("SELECT COALESCE(SUM(amount),0) FROM utxos WHERE txid=?",
-                                       (txid,)).fetchone()[0]
-                total_in = db.execute("SELECT COALESCE(SUM(amount),0) FROM utxos WHERE spent_by=?",
-                                      (txid,)).fetchone()[0]
+            total_out = totals_out.get(txid, 0)
+            total_in = totals_in.get(txid, 0)
             # what actually left the address: outputs that are not change coming back
             # only meaningful when this address is one of the spenders; a batch payout
             # to 200 people would otherwise read as "you sent 173 NEB"
