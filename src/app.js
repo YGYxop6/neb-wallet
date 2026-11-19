@@ -50,7 +50,9 @@ const I18N = {
     h_close: "关闭", h_self: "转账", h_conf: "确认", h_none: "—",
     foot_note: "私钥从不上传 · 服务器只提供余额查询与交易广播",
     foot_src: "源代码", foot_pool: "矿池",
-    err_pass_short: "密码至少 8 位", err_pass_mismatch: "两次输入的密码不一样",
+    err_pass_short: "密码至少 8 位",
+    err_pass_common: "这个密码太常见了，别人拿到密文几秒就能破 —— 换一个",
+    err_pass_weak: "这个密码太弱（纯字母或重复字符），建议 12 位以上、字母数字符号混合", err_pass_mismatch: "两次输入的密码不一样",
     err_secret: "私钥必须是 64 位十六进制", err_addr: "地址格式不对",
     err_amount: "金额不对", err_fee: "手续费不对",
     err_insufficient: "可用余额不足", err_locked: "已锁定，请重新解锁",
@@ -99,7 +101,10 @@ const I18N = {
     h_close: "Close", h_self: "Transfer", h_conf: "confirmations", h_none: "—",
     foot_note: "Keys never leave the browser · the server only reads balances and relays transactions",
     foot_src: "Source", foot_pool: "Pool",
-    err_pass_short: "Password must be at least 8 characters", err_pass_mismatch: "Passwords do not match",
+    err_pass_short: "Password must be at least 8 characters",
+    err_pass_common: "That password is on every cracking list — pick another one",
+    err_pass_weak: "Too weak (letters only or repeated characters) — use 12+ mixed characters",
+    err_pass_mismatch: "Passwords do not match",
     err_secret: "The key must be 64 hex characters", err_addr: "That is not a valid address",
     err_amount: "Bad amount", err_fee: "Bad fee",
     err_insufficient: "Not enough spendable coins", err_locked: "Locked, unlock again",
@@ -464,10 +469,30 @@ function lockNow() {
   home();
 }
 
+// A leaked keystore is only as strong as the password around it: PBKDF2 600k makes
+// a random 8-character password a years-long job, but "password123" falls in seconds.
+// No length rule fixes that, so block the obvious ones and say why.
+const COMMON_PASSWORDS = new Set([
+  "password", "password1", "password12", "password123", "password1234",
+  "12345678", "123456789", "1234567890", "11111111", "00000000", "87654321",
+  "qwertyui", "qwerty123", "abc12345", "abcd1234", "iloveyou", "letmein1",
+  "admin123", "welcome1", "nebwallet", "bitcoin1", "satoshi1", "wallet123",
+]);
+
+function weakPassword(pass) {
+  const low = pass.toLowerCase();
+  if (COMMON_PASSWORDS.has(low)) return "common";
+  if (/^[a-z]+$/.test(low) && low.length < 12) return "letters";
+  if (/^(.)\1+$/.test(low)) return "repeat";
+  return "";
+}
+
 async function doCreate() {
   const pass = $("c-pass").value;
   const pass2 = $("c-pass2").value;
   if (pass.length < 8) return fail("c-err", t("err_pass_short"));
+  const weakC = weakPassword(pass);
+  if (weakC) return fail("c-err", t(weakC === "common" ? "err_pass_common" : "err_pass_weak"));
   if (pass !== pass2) return fail("c-err", t("err_pass_mismatch"));
   const secret = crypto.getRandomValues(new Uint8Array(32));
   const address = await store.create(pass, secret);
@@ -526,6 +551,8 @@ async function doImport() {
   const pass2 = $("i-pass2").value;
   if (!/^[0-9a-f]{64}$/.test(raw)) return fail("i-err", t("err_secret"));
   if (pass.length < 8) return fail("i-err", t("err_pass_short"));
+  const weakI = weakPassword(pass);
+  if (weakI) return fail("i-err", t(weakI === "common" ? "err_pass_common" : "err_pass_weak"));
   if (pass !== pass2) return fail("i-err", t("err_pass_mismatch"));
   const secret = fromHex(raw);
   const address = await store.create(pass, secret);
