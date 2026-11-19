@@ -21,6 +21,7 @@
         fh: "Could not move the wallet",
         fp: "Go back to argonpool.com/wallet and try again, or import your 64-character key on the new address.",
         fa: "Open wallet.argonpool.com",
+        esc: "Can't reach the new address? Keep using the old page",
       }
     : {
         h: "钱包已搬到新地址",
@@ -31,6 +32,7 @@
         fh: "钱包没能搬过来",
         fp: "请回到 argonpool.com/wallet 再试一次，或者在新地址用你的 64 位私钥重新导入。",
         fa: "前往 wallet.argonpool.com",
+        esc: "打不开新地址？用旧页面继续",
       };
 
   function q(name) {
@@ -88,6 +90,10 @@
   document.getElementById("t-b1").textContent = T.b1;
   document.getElementById("t-b2").textContent = T.b2;
   document.getElementById("go").textContent = T.go;
+  // some networks (a fake-ip proxy is the usual suspect) cannot reach a domain
+  // they have never seen, and being locked out of a wallet is worse than being
+  // left on the old origin, so keep a door open
+  document.getElementById("esc").textContent = T.esc;
   document.getElementById("cd").textContent = T.cd(left);
   document.getElementById("card").className = "";
   document.getElementById("go").addEventListener("click", go);
