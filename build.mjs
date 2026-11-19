@@ -20,6 +20,18 @@ await build({
 
 await copyFile("index.html", `${out}/index.html`);
 
+// The same wallet is served from two origins: /wallet/ on the pool host while
+// the migration is still running, and the root of wallet.argonpool.com. Only the
+// asset path and the nav targets differ, so derive the second copy here instead of
+// hand-editing two HTML files that can drift apart.
+const rootHtml = (await readFile("index.html", "utf8"))
+  .replace('src="/wallet/app.js"', 'src="app.js"')
+  .replaceAll('href="/"', 'href="https://argonpool.com/"')
+  .replaceAll('href="/miners.html"', 'href="https://argonpool.com/miners.html"')
+  .replaceAll('href="/#blocks"', 'href="https://argonpool.com/#blocks"')
+  .replace('href="/wallet/" class="on"', 'href="/" class="on"');
+await writeFile(`${out}/index-wallet.html`, rootHtml);
+
 const js = await readFile(`${out}/app.js`);
 const hash = createHash("sha256").update(js).digest("hex");
 const size = (js.length / 1024).toFixed(1);

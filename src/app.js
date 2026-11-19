@@ -858,7 +858,12 @@ function switchTab(which) {
  *  compare it with the published build without trusting what we say. */
 async function showBuildHash() {
   try {
-    const buf = await (await fetch("/wallet/app.js", { cache: "no-store" })).arrayBuffer();
+    // relative, because the same bundle is served from /wallet/ and from the root
+    // of wallet.argonpool.com. A 404 here used to hash the error page and print it
+    // as if it were the build fingerprint, so check the status first.
+    const res = await fetch("app.js", { cache: "no-store" });
+    if (!res.ok) throw new Error(`bundle ${res.status}`);
+    const buf = await res.arrayBuffer();
     const digest = await crypto.subtle.digest("SHA-256", buf);
     const hex = Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, "0")).join("");
     $("build-hash").textContent = `${t("build")} ${hex.slice(0, 16)}…`;
@@ -868,4 +873,44 @@ async function showBuildHash() {
   }
 }
 
-init();
+/** The wallet used to be served from argonpool.com/wallet. Moving it to its own
+ *  origin would normally mean everyone re-imports their key, so the old page hands
+ *  the encrypted keystore over in the URL fragment instead: fragments never reach a
+ *  server, the ciphertext is useless without the password, and the old page drops
+ *  its copy once this side confirms it stored one. */
+function acceptMigration() {
+  const m = /^#migrate=([A-Za-z0-9_-]+)$/.exec(location.hash);
+  if (!m) return false;
+  let doc = null;
+  try {
+    doc = JSON.parse(decodeURIComponent(escape(atob(m[1].replace(/-/g, "+").replace(/_/g, "/")))));
+  } catch (err) {
+    doc = null;
+  }
+  if (!doc || typeof doc !== "object") {
+    // not something we can read: send the user back to the old page, which then
+    // stops auto-forwarding and offers the manual import instead of looping
+    location.replace("https://argonpool.com/wallet/?failed=1");
+    return true;
+  }
+  const keep = (key, val, check) => {
+    if (typeof val !== "string" || !val) return;
+    try {
+      const parsed = JSON.parse(val);
+      if (check && !check(parsed)) return;
+    } catch (err) {
+      return;
+    }
+    localStorage.setItem(key, val);
+  };
+  keep("neb.wallet.v1", doc.w, (d) => d && d.v && d.salt && d.iv && d.ct && d.address);
+  keep("neb.watch.v1", doc.k, (d) => d && typeof d.address === "string");
+  keep("neb.pending", doc.p);
+  if (doc.l === "zh" || doc.l === "en") localStorage.setItem("nebpool-lang", doc.l);
+  history.replaceState(null, "", "/");
+  // the old origin still holds a copy; it deletes it when it sees ?done=1
+  location.replace("https://argonpool.com/wallet/?done=1");
+  return true;
+}
+
+if (!acceptMigration()) init();

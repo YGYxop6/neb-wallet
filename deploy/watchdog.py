@@ -396,13 +396,17 @@ def collect() -> dict:
 
 
 WEB_FILES = [
-    "/var/www/argonpool/wallet/index.html",
-    "/var/www/argonpool/wallet/app.js",
+    # the pool pages
     "/var/www/argonpool/index.html",
     "/var/www/argonpool/miners.html",
-    # scripts moved out of the HTML for the CSP; they are just as worth watching
     "/var/www/argonpool/app-shell.js",
     "/var/www/argonpool/app-miners.js",
+    # what /wallet/ serves now: a forwarder that hands the keystore to the new origin
+    "/var/www/argonpool/wallet/index.html",
+    "/var/www/argonpool/wallet/migrate.js",
+    # and the wallet itself, on its own origin
+    "/var/www/argonpool-wallet/index.html",
+    "/var/www/argonpool-wallet/app.js",
 ]
 WEB_MANIFEST = "/root/watchdog/web.sha256"
 
