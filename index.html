@@ -29,6 +29,10 @@
   .brand{display:flex;align-items:center;gap:10px;color:var(--fg);font-weight:500;white-space:nowrap}
   .top nav{display:flex;gap:16px;font-size:12px;color:var(--dim)}
   .top nav a.on{color:var(--g)}
+  .top nav a.xlink{display:inline-flex;align-items:center;gap:5px;margin-left:2px;color:var(--dim)}
+  .top nav a.xlink:hover{color:var(--fg,#e8e8e8)}
+  .top nav a.xlink svg{width:11px;height:11px;flex:0 0 auto}
+
   .pill{border:1px solid var(--line);border-radius:999px;padding:1px 10px;font-size:12px;color:var(--mid)}
   .search{display:flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:4px;
           background:#0d0d0d;padding:4px 8px;min-width:0}
@@ -175,7 +179,7 @@
     <span>neb pool</span>
     <span class="pill" id="pill" data-i18n="mainnet">mainnet</span>
   </div>
-  <nav><a href="/" data-i18n="nav_pool">矿池</a><a href="/miners.html" data-i18n="nav_miners">矿工</a><a href="/#blocks" data-i18n="nav_blocks">出块</a><a href="/wallet/" class="on" data-i18n="nav_wallet">钱包</a></nav>
+  <nav><a href="/" data-i18n="nav_pool">矿池</a><a href="/miners.html" data-i18n="nav_miners">矿工</a><a href="/#blocks" data-i18n="nav_blocks">出块</a><a href="/wallet/" class="on" data-i18n="nav_wallet">钱包</a><a href="https://x.com/YGYxop6" target="_blank" rel="noopener noreferrer" class="xlink" title="X · @YGYxop6" aria-label="X · @YGYxop6"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg><span>@YGYxop6</span></a></nav>
   <div class="grow"></div>
   <div class="search">
     <input id="q" data-i18n-ph="search_ph" placeholder="搜索地址 neb1…" autocomplete="off" spellcheck="false">
