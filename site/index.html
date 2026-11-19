@@ -1,0 +1,976 @@
+<!doctype html>
+<html lang="zh">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NEB Pool · argonpool.com</title>
+<meta name="theme-color" content="#0a0a0a">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap">
+<style>
+  :root{
+    --bg:#0a0a0a; --panel:#121212; --panel2:#171717; --line:#262626; --line2:#343434;
+    --fg:#fff; --mid:#bcbcbc; --dim:gray; --faint:#444;
+    --g:#87ff87; --glow:#d7ffd7; --c:#69d6ff; --y:#ffc66d; --p:#c3a6ff; --r:#ff6b7a;
+    --font:"JetBrains Mono","JetBrains Mono Variable","Cascadia Mono",ui-monospace,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{background:var(--bg)}
+  body{margin:0;color:var(--mid);font:13px/1.65 var(--font);-webkit-font-smoothing:antialiased}
+  a{color:inherit;text-decoration:none}
+  a:hover{color:var(--g)}
+  .top{display:flex;align-items:center;gap:16px;height:46px;padding:0 18px;
+       border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--bg);z-index:20}
+  .brand{display:flex;align-items:center;gap:10px;color:var(--fg);font-weight:500;white-space:nowrap}
+  .pill{border:1px solid var(--line);border-radius:999px;padding:1px 10px;font-size:12px;color:var(--mid)}
+  .top nav{display:flex;gap:16px;font-size:12px;color:var(--dim)}
+  .grow{flex:1}
+  .search{display:flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:4px;
+          background:#0d0d0d;padding:4px 8px;min-width:0}
+  .search input{background:none;border:0;outline:0;color:var(--fg);font:inherit;font-size:12px;width:230px}
+  .search input::placeholder{color:#5a5a5a}
+  .search button{background:none;border:0;color:var(--g);font:inherit;font-size:12px;cursor:pointer;padding:0 2px}
+  .lang{display:flex;gap:2px;border:1px solid var(--line);border-radius:4px;overflow:hidden}
+  .lang button{background:none;border:0;color:var(--dim);font:inherit;font-size:11px;padding:3px 8px;cursor:pointer}
+  .lang button.on{background:#87ff871a;color:var(--g)}
+
+  main{display:grid;grid-template-columns:minmax(0,1fr) 400px;max-width:1240px;margin:0 auto;
+       border-left:1px solid var(--line);border-right:1px solid var(--line);min-height:calc(100vh - 74px)}
+  .left{padding:34px 34px 44px;border-right:1px solid var(--line);min-width:0}
+  .right{padding:22px 18px 30px;display:flex;flex-direction:column;gap:14px}
+
+  .wordmark{display:flex;align-items:flex-start;gap:14px}
+  .wm-text{display:flex;flex-direction:column;gap:6px}
+  .wm{font-size:46px;line-height:1;font-weight:500;letter-spacing:.06em;color:var(--g)}
+  .wm em{font-style:normal;font-size:13px;color:var(--mid)}
+  h1{color:var(--fg);font-size:31px;line-height:1.3;font-weight:600;letter-spacing:-.015em;margin:28px 0 12px}
+  h1 b{color:var(--g);font-weight:600}
+  .lede{margin:0;max-width:64ch}
+  .statusline{display:flex;align-items:center;gap:8px;color:var(--g);font-size:12px;margin-top:16px}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--g);box-shadow:0 0 8px #87ff8799;display:inline-block}
+  .dot.off{background:#555;box-shadow:none}
+  .hint{margin:14px 0 10px;font-size:12px;color:var(--dim)}
+  .hint b{color:var(--mid);font-weight:500}
+
+  .term{border:1px solid var(--line);border-radius:6px;background:#0d0d0d;overflow:hidden}
+  .termbar{display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid var(--line)}
+  .ps1{color:var(--g);white-space:nowrap}
+  .termbar input{flex:1;background:none;border:0;outline:0;color:var(--fg);font:inherit;caret-color:var(--g);min-width:0}
+  .termbar input::placeholder{color:#5a5a5a}
+  .chips{display:flex;align-items:center;gap:9px;padding:9px 14px;border-bottom:1px solid var(--line);
+         font-size:12px;color:var(--faint);flex-wrap:wrap}
+  .chips button{background:none;border:0;padding:0;color:var(--dim);font:inherit;cursor:pointer}
+  .chips button:hover{color:var(--g)}
+  .chips .keys{margin-left:auto;color:var(--faint);font-size:11px;white-space:nowrap}
+  .log{padding:10px 14px 14px;max-height:34vh;overflow:auto;font-size:12.5px}
+  .log .l{white-space:pre-wrap;word-break:break-word}
+  .log .cmd{color:var(--fg);margin-top:8px}
+  .log .cmd i{color:var(--g);font-style:normal}
+  .log .ok{color:var(--g)} .log .err{color:var(--r)} .log .dim{color:var(--dim)}
+  .log .cy{color:var(--c)} .log .ye{color:var(--y)} .log .hd{color:var(--fg);font-weight:500}
+
+  .card{border:1px solid var(--line);border-radius:6px;background:var(--panel);padding:16px;margin-top:14px}
+  .cardhead{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
+  .label{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--g)}
+  .tag{font-size:10px;color:var(--g);border:1px solid #87ff8740;background:#87ff870f;
+       border-radius:999px;padding:2px 9px;white-space:nowrap}
+  .card h2{color:var(--fg);font-size:14px;font-weight:600;margin:0 0 10px;line-height:1.5}
+  .card p{margin:0 0 14px;font-size:12px;color:var(--mid)}
+  .rules{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:13px}
+  .rules li{display:grid;grid-template-columns:26px 1fr;gap:8px;font-size:12px}
+  .rules b{color:var(--g);font-weight:500}
+  .rules strong{color:var(--fg);font-weight:500;display:block;margin-bottom:2px}
+  code{color:var(--glow);background:#87ff8714;border:1px solid #87ff8726;border-radius:3px;padding:1px 5px;font-size:12px}
+  .kv{display:flex;justify-content:space-between;gap:10px;font-size:12px;padding:5px 0;border-top:1px solid #1b1b1b}
+  .kv:first-of-type{border-top:0}
+  .kv span{color:var(--dim)} .kv b{color:var(--fg);font-weight:500}
+  table{width:100%;border-collapse:collapse;font-size:11.5px}
+  th{text-align:left;color:var(--dim);font-weight:400;font-size:10px;letter-spacing:.1em;
+     text-transform:uppercase;padding:0 0 6px}
+  td{padding:6px 0;border-top:1px solid #1b1b1b;color:var(--mid)}
+  th.n,td.n{text-align:right}
+  td.a{color:var(--glow);cursor:pointer}
+  td.a:hover{color:var(--g)}
+  .empty{color:var(--faint);font-size:12px;padding:6px 0}
+
+  .tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);
+         border:1px solid var(--line);border-radius:4px;overflow:hidden;margin-bottom:12px}
+  .tile{background:#0f0f0f;padding:10px 12px}
+  .tile .k{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim)}
+  .tile .v{font-size:16px;color:var(--fg);margin-top:2px}
+  .tile .v small{font-size:10px;color:var(--dim)}
+  .addr-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px}
+  .addr-full{color:var(--glow);word-break:break-all}
+  .copy{background:none;border:1px solid var(--line);border-radius:3px;color:var(--dim);
+        font:inherit;font-size:10px;padding:1px 6px;cursor:pointer}
+  .copy:hover{color:var(--g);border-color:#87ff8740}
+  .bal{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line);
+       border:1px solid var(--line);border-radius:4px;overflow:hidden;margin:12px 0}
+  .bal div{background:#0f0f0f;padding:10px 12px}
+  .bal .k{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim)}
+  .bal .v{font-size:15px;color:var(--fg)}
+  .bal .v.pend{color:var(--y)} .bal .v.avail{color:var(--g)} .bal .v.paid{color:var(--c)}
+  .bal .s{font-size:10px;color:var(--faint)}
+  .spark{display:flex;align-items:flex-end;gap:1px;height:44px;margin:6px 0 4px}
+  .spark i{flex:1;background:#87ff8740;border-radius:0;min-height:1px}
+  .spark i.hi{background:var(--g)}
+  .sparkleg{display:flex;justify-content:space-between;font-size:10px;color:var(--faint)}
+  .sub2{display:grid;grid-template-columns:1fr 1fr;gap:0;margin-top:12px}
+  .sub2 > div{padding-right:14px}
+  .sub2 > div + div{border-left:1px solid var(--line);padding-left:14px;padding-right:0}
+  @media (max-width:1080px){
+    .sub2{grid-template-columns:1fr}
+    .sub2 > div{padding-right:0}
+    .sub2 > div + div{border-left:0;border-top:1px solid var(--line);padding-left:0;padding-top:12px;margin-top:8px}
+  }
+  footer{display:flex;gap:16px;align-items:center;height:28px;padding:0 18px;border-top:1px solid var(--line);
+         font-size:11px;color:var(--faint);position:sticky;bottom:0;background:var(--bg);z-index:10}
+  footer .g{color:var(--g)}
+  @media (max-width:980px){
+    main{grid-template-columns:1fr}
+    .left{border-right:0;border-bottom:1px solid var(--line);padding:22px 16px}
+    .right{padding:16px}
+    h1{font-size:22px} .wm{font-size:34px}
+    .search input{width:130px}
+    .tiles{grid-template-columns:repeat(2,1fr)} .bal{grid-template-columns:1fr}
+  }
+
+  .jserr{position:fixed;left:0;right:0;bottom:0;z-index:99;background:#5c1b1b;color:#ffdede;
+    font:12px/1.5 ui-monospace,Menlo,monospace;padding:8px 12px;border-top:1px solid #ff6b6b}
+
+  /* ---- motion: the official site feels alive because things move on a beat ---- */
+  @keyframes nebBlink{0%,49%{opacity:1}50%,100%{opacity:0}}
+  @keyframes nebPulse{0%,100%{box-shadow:0 0 0 0 #87ff8766,0 0 8px #87ff8799}50%{box-shadow:0 0 0 4px #87ff8700,0 0 8px #87ff8766}}
+  @keyframes nebRowIn{0%{opacity:0;background:#87ff8730;transform:translateX(-16px)}60%{background:#87ff8718}100%{opacity:1;background:transparent;transform:none}}
+  @keyframes nebtick{0%{color:var(--g);transform:translateY(-3px)}100%{color:inherit;transform:none}}
+  @keyframes nebEnter{0%{opacity:0;transform:translateY(7px)}100%{opacity:1;transform:none}}
+  @keyframes nebSweep{0%{background-position:-220% 0}100%{background-position:220% 0}}
+  .dot{animation:nebPulse 2.6s ease-in-out infinite}
+  @keyframes nebGlow{0%,100%{filter:drop-shadow(0 0 6px #87ff8722)}50%{filter:drop-shadow(0 0 14px #87ff8755)}}
+  .wordmark svg{animation:nebGlow 5s ease-in-out infinite}
+  .caret{display:inline-block;width:7px;height:12.5px;background:var(--g);vertical-align:-2px;margin-left:2px;animation:nebBlink 1s steps(1) infinite}
+  .term,.card,.tiles{animation:nebEnter .42s cubic-bezier(.2,.7,.3,1) both}
+  .term{animation-delay:.04s}
+  .card:nth-of-type(1){animation-delay:.10s}
+  .card:nth-of-type(2){animation-delay:.16s}
+  .card:nth-of-type(3){animation-delay:.22s}
+  .card:nth-of-type(4){animation-delay:.28s}
+  tr.rowIn{animation:nebRowIn .95s ease-out both}
+  .tick{animation:nebtick .55s ease-out}
+  .shimmer{background:linear-gradient(90deg,transparent 0%,#87ff8718 45%,#87ff8730 50%,#87ff8718 55%,transparent 100%);
+    background-size:220% 100%;animation:nebSweep 1.6s linear infinite}
+  .sparkline{margin-top:12px;border-top:1px solid var(--line);padding-top:10px}
+  .sparkline canvas{width:100%;height:46px;display:block}
+  .sparkcap{display:flex;justify-content:space-between;font-size:11px;color:var(--dim);margin-top:6px}
+  /* phones: the header used to be one rigid row, which pushed the whole layout
+     wider than the screen and made the page look zoomed in. Rows wrap now, the
+     nav keeps scrolling sideways, the search takes a full line. */
+  @media (max-width:700px){
+    .top{height:auto;flex-wrap:wrap;gap:8px 10px;padding:8px 12px}
+    .top .grow{display:none}
+    .brand{order:1}
+    .lang{order:2;margin-left:auto}
+    .top nav{order:3;width:100%;display:flex;gap:16px;white-space:nowrap;overflow-x:auto;
+             padding-top:8px;border-top:1px solid var(--line);scrollbar-width:none}
+    .top nav::-webkit-scrollbar{display:none}
+    .top nav a{flex:0 0 auto;white-space:nowrap}
+    .search{order:4;width:100%;box-sizing:border-box}
+    .search input{width:100%;min-width:0;flex:1 1 auto}
+    .lang button{padding:5px 10px;font-size:12px}
+    .tile .v{font-size:13.5px}
+    .tile .v small{font-size:9px}
+    .tbl table{min-width:0;width:100%}
+    .tbl thead{display:none}
+    .tbl tr{display:block;padding:9px 0;border-top:1px solid #1b1b1b}
+    .tbl td{display:flex;justify-content:space-between;align-items:baseline;gap:12px;
+            border:0;padding:2px 0;text-align:right}
+    .tbl td::before{content:attr(data-label);color:var(--dim);font-size:10px;
+                    letter-spacing:.06em;text-transform:uppercase;flex:0 0 auto}
+    .search button{flex:0 0 auto;white-space:nowrap}
+  }
+  @media (prefers-reduced-motion: reduce){
+    .dot,.term,.card,.tiles,tr.rowIn,.tick,.shimmer,.caret{animation:none !important}
+  }
+</style>
+
+<header class="top">
+  <div class="brand">
+    <svg width="16" height="18" viewBox="0 0 24 26" aria-hidden="true">
+      <polygon points="12,0 23,6 12,12 1,6" fill="#d7ffd7"/>
+      <polygon points="1,6 12,12 12,25 1,19" fill="#87ff87"/>
+      <polygon points="12,12 23,6 23,19 12,25" fill="#4fd14f"/>
+    </svg>
+    <span>neb pool</span>
+    <span class="pill" id="pill" data-i18n="mainnet">mainnet</span>
+  </div>
+  <nav><a href="#pool" data-i18n="nav_pool">矿池</a><a href="/miners.html" data-i18n="nav_miners">矿工</a><a href="#blocks" data-i18n="nav_blocks">出块</a><a href="/wallet/" data-i18n="nav_wallet">钱包</a></nav>
+  <div class="grow"></div>
+  <div class="search">
+    <input id="q" data-i18n-ph="search_ph" placeholder="搜索地址 neb1…" autocomplete="off" spellcheck="false">
+    <button id="qbtn" data-i18n="search_btn">查询</button>
+  </div>
+  <div class="lang">
+    <button data-lang="zh" class="on">中文</button>
+    <button data-lang="en">EN</button>
+  </div>
+</header>
+
+<main>
+  <section class="left">
+    <div class="wordmark">
+      <svg width="60" height="66" viewBox="0 0 24 26" aria-hidden="true">
+        <polygon points="12,0 23,6 12,12 1,6" fill="#d7ffd7"/>
+        <polygon points="1,6 12,12 12,25 1,19" fill="#87ff87"/>
+        <polygon points="12,12 23,6 23,19 12,25" fill="#4fd14f"/>
+      </svg>
+      <div class="wm-text">
+        <div><span class="wm">NEB POOL</span></div>
+        <div><em>(argonpool.com · Neural Engine Byte)</em></div>
+      </div>
+    </div>
+
+    <h1 data-i18n="h1" data-i18n-html="1">挖矿的每一步，都变成 <b>NEB</b> 打进你的地址。</h1>
+    <p class="lede" data-i18n="lede">
+      argonpool.com 是给 NEB 矿工的公共矿池：只接 GPU、PPLNS 结算、抽成 1%。
+      协议里矿工没有用户名，矿池按出口 IP 认人 —— 先绑定收款地址，再开矿机。
+    </p>
+
+    <div class="statusline">
+      <span class="dot"></span>
+      <span>mainnet · <span id="height" data-i18n="waiting_genesis">等待创世块</span></span>
+    </div>
+
+    <div class="hint" data-i18n="hint" data-i18n-html="1">输入 <b>help</b>，按 <b>Tab</b> 补全，或点下面的命令。</div>
+
+    <div class="term">
+      <div class="termbar">
+        <span class="ps1">neb ~ ❯</span>
+        <input id="cmd" data-i18n-ph="cmd_ph" placeholder="输入命令，或点下面任意一条"
+               autocomplete="off" spellcheck="false" autocapitalize="off">
+      </div>
+      <div class="chips">
+        <span>try</span>
+        <button data-cmd="help">help</button>
+        <button data-cmd="mine">mine</button>
+        <button data-cmd="fee">fee</button>
+        <button data-cmd="miners">miners</button>
+        <button data-cmd="blocks">blocks</button>
+        <button data-cmd="me">me</button>
+        <span class="keys" data-i18n="keys">Tab 补全 · ↑ 历史 · Ctrl+L 清屏</span>
+      </div>
+      <div class="log" id="log"></div>
+    </div>
+
+    <div class="card" id="acct" style="display:none">
+      <div class="cardhead">
+        <span class="label" data-i18n="acct_title">账户</span>
+        <span class="addr-row">
+          <span class="dot" id="acct-dot"></span>
+          <span class="addr-full" id="acct-addr"></span>
+          <button class="copy" id="acct-copy" data-i18n="copy">复制</button>
+          <span class="tag" id="acct-state"></span>
+        </span>
+      </div>
+
+      <div class="tiles">
+        <div class="tile"><div class="k" data-i18n="t_hashrate">当前算力</div>
+          <div class="v" id="a-hash">–</div></div>
+        <div class="tile"><div class="k" data-i18n="t_share_pct">24h 份额占比</div>
+          <div class="v" id="a-pct">–</div></div>
+        <div class="tile"><div class="k" data-i18n="t_shares">累计 share</div>
+          <div class="v" id="a-shares">–</div></div>
+        <div class="tile"><div class="k" data-i18n="t_blocks">出块</div>
+          <div class="v" id="a-blocks">–</div></div>
+      </div>
+
+      <div class="bal">
+        <div><div class="k" data-i18n="b_pending">待确认</div>
+          <div class="v pend" id="a-pending">–</div>
+          <div class="s" id="a-pending-sub"></div></div>
+        <div><div class="k" data-i18n="b_available">可派彩</div>
+          <div class="v avail" id="a-avail">–</div>
+          <div class="s" id="a-avail-sub"></div></div>
+        <div><div class="k" data-i18n="b_paid">已派彩</div>
+          <div class="v paid" id="a-paid">–</div>
+          <div class="s" id="a-paid-sub"></div></div>
+      </div>
+
+      <div class="sparkleg"><span data-i18n="spark_l">24 小时算力（30 分钟一档）</span><span id="a-sparkmax"></span></div>
+      <div class="spark" id="a-spark"></div>
+
+      <div class="sub2">
+        <div>
+          <div class="cardhead"><span class="label" data-i18n="a_blocks_h">最近出块</span></div>
+          <table><thead><tr><th class="n" data-i18n="th_height">高度</th><th class="n" data-i18n="th_time">时间</th>
+            <th class="n" data-i18n="th_reward">奖励</th></tr></thead>
+            <tbody id="a-blk"></tbody></table>
+        </div>
+        <div>
+          <div class="cardhead"><span class="label" data-i18n="a_pay_h">派彩记录</span></div>
+          <table><thead><tr><th class="n" data-i18n="th_time">时间</th><th class="n" data-i18n="th_amount">金额</th>
+            <th class="n" data-i18n="th_status">状态</th></tr></thead>
+            <tbody id="a-pay"></tbody></table>
+        </div>
+      </div>
+
+      <div class="kv" style="margin-top:12px"><span data-i18n="k_1h">1 小时算力</span><b id="a-1h">–</b></div>
+      <div class="kv"><span data-i18n="k_24h">24 小时算力</span><b id="a-24h">–</b></div>
+      <div class="kv"><span data-i18n="k_last">最近 share</span><b id="a-last">–</b></div>
+      <div class="kv"><span data-i18n="k_conn">连接 / rig</span><b id="a-conn">–</b></div>
+      <div class="kv"><span data-i18n="k_est">预计日收益</span><b id="a-est">–</b></div>
+      <div class="kv"><span data-i18n="k_min">最低派彩</span><b id="a-min">–</b></div>
+    </div>
+
+    <div class="card">
+      <div class="cardhead"><span class="label">MINERS</span><span class="tag">任何 nebhash 矿机</span></div>
+      <div class="tbl"><table style="margin-bottom:10px">
+        <thead><tr><th>矿机</th><th>协议</th><th class="n">端口</th></tr></thead>
+        <tbody>
+          <tr><td data-label="矿机"><b>官方</b> neb-miner-gpu / -cpu</td><td data-label="协议">NEB work（二进制帧）</td><td class="n" data-label="端口"><code>argonpool.com:3441</code></td></tr>
+          <tr><td data-label="矿机"><b>Aria Energy NEB</b> 3.0.0</td><td data-label="协议">NEB work，Hello 名 = <code>地址.rig</code></td><td class="n" data-label="端口"><code>argonpool.com:3441</code></td></tr>
+          <tr><td data-label="矿机"><b>Suprminer</b></td><td data-label="协议">neb-pool/1（JSON）</td><td class="n" data-label="端口"><code>argonpool.com:3442</code></td></tr>
+          <tr><td data-label="矿机">nebx-miner / meshminer</td><td data-label="协议">stratum 变体</td><td class="n" data-label="端口">适配中</td></tr>
+        </tbody>
+      </table></div>
+      <pre style="margin:0 0 10px;padding:11px 12px;background:#0d0d0d;border:1px solid var(--line);
+                  border-radius:4px;overflow-x:auto;color:var(--glow);font-size:12px"><span class="ps1">$</span> neb-miner-gpu --node argonpool.com:3441 --dataset neb-datasets.bin --gpu-kernel k1</pre>
+      <div style="font-size:11.5px;color:var(--dim);line-height:1.9" data-i18n="install_note" data-i18n-html="1">
+        数据集 16 MB：<a href="https://github.com/SilasEigen/neb/releases/download/v1.0.1/neb-datasets.bin">neb-datasets.bin</a>
+        · HiveOS：<code>nebminer-1.0.1.tar.gz</code>，节点地址填 <code>argonpool.com:3441</code><br>
+        算力由矿机决定，池子只收 share 和记账 —— 用你手上最快的矿机连我们就行。本池不接 CPU（share 难度固定为区块难度 × 32）。
+        DNS 异常时用 <code>104.129.51.179</code>。
+      </div>
+    </div>
+
+    <div class="card" id="why">
+      <div class="cardhead"><span class="label" data-i18n="why_label">优势</span><span class="tag">1% fee</span></div>
+      <h2 data-i18n="why_h">为什么在 argonpool 挖</h2>
+      <ul class="rules">
+        <li><b>01</b><div><strong data-i18n="why_1t">1% 池费</strong><span data-i18n="why_1">对照：AriaPool 2%、Suprnova 1%、NurseryPool 1%，MeshPool 0.3% 但只接它自家矿机。我们不收注册费，也不抽矿机时间。</span></div></li>
+        <li><b>02</b><div><strong data-i18n="why_2t">两条协议都接</strong><span data-i18n="why_2">官方矿机和 Aria Energy NEB 走 3441，Suprminer 走 3442 —— 不用换矿机，也不用等我们适配你的那一款。</span></div></li>
+        <li><b>03</b><div><strong data-i18n="why_3t">每个 share 都转发上链</strong><span data-i18n="why_3">矿工的每个 chain share 都由池子自己的 P2P 会话推给节点、进入区块的 share 列表，不是只在池子内部记一笔账。</span></div></li>
+        <li><b>04</b><div><strong data-i18n="why_4t">账目三分离，地址即账号</strong><span data-i18n="why_4">待确认 / 可派彩 / 已派彩分开算，块块可查；不用注册，填地址就能看自己的算力、份额和收益。</span></div></li>
+        <li><b>05</b><div><strong data-i18n="why_5t">节点与池子同机</strong><span data-i18n="why_5">节点和池子跑在同一台机器、同一条链路：出块后 job 与模型第一时间推给矿工，不给矿工喂过期模板。</span></div></li>
+        <li><b>06</b><div><strong data-i18n="why_6t">自动派彩</strong><span data-i18n="why_6">100 块成熟后自动发到挖矿地址，最低 1 NEB，每笔都带交易 ID，可在链上核对。</span></div></li>
+      </ul>
+      <p style="font-size:11.5px;color:var(--dim);line-height:1.8;margin:10px 0 0" data-i18n="why_note">各家费率以对方页面为准（2026-11-18 核对）。算力由矿机决定，池子只负责收 share 和记账 —— 所以最快的矿机我们也接。</p>
+    </div>
+
+    <div class="card" id="hashrate">
+      <div class="cardhead"><span class="label" data-i18n="nav_hashrate">算力</span><span class="tag" id="tagpoolshare">–</span></div>
+      <div class="kv"><span data-i18n="k_net">全网算力</span><b id="k-net">–</b></div>
+      <div class="kv"><span data-i18n="k_pool">本池算力</span><b id="k-pool">–</b></div>
+      <div class="kv"><span data-i18n="k_miners">矿工</span><b id="k-miners">0</b></div>
+      <p style="margin:12px 0 0;font-size:12px"><a href="/miners.html" data-i18n="miners_link">矿工列表、全网算力与出块 →</a></p>
+    </div>
+
+    <div class="card" id="blocks">
+      <div class="cardhead"><span class="label" data-i18n="nav_blocks">出块</span><span class="tag" id="tagblk">0</span></div>
+      <table>
+        <thead><tr><th class="n" data-i18n="th_height">高度</th><th class="n" data-i18n="th_time">时间</th>
+          <th class="n" data-i18n="th_reward">奖励</th><th class="n" data-i18n="th_shares">share</th></tr></thead>
+        <tbody id="blocksbody"><tr><td colspan="4" class="empty" data-i18n="no_blocks">等待第一个块</td></tr></tbody>
+      </table>
+    </div>
+  </section>
+
+  <aside class="right">
+    <div class="card" id="pool" style="margin-top:0">
+      <div class="cardhead"><span class="label" data-i18n="pool_label">矿池</span><span class="tag" id="tagfee">1% fee</span></div>
+      <h2 data-i18n="pool_h">GPU 挖矿 · PPLNS 结算 · 自动派彩</h2>
+      <p data-i18n="pool_p">share 是链上对象，矿池只负责转发和记账。难度由协议固定为区块难度 × 32，所以只有 GPU 有意义。</p>
+      <ul class="rules">
+        <li><b>01</b><div><strong data-i18n="r1t">先绑定地址</strong><span data-i18n="r1" data-i18n-html="1">输入 <code>bind neb1…</code>，把当前出口 IP 绑到你的地址。</span></div></li>
+        <li><b>02</b><div><strong data-i18n="r2t">再开矿机</strong><span data-i18n="r2" data-i18n-html="1">GPU 连 <code>argonpool.com:3441</code>，数据集用官方 16 MB 那份。</span></div></li>
+        <li><b>03</b><div><strong data-i18n="r3t">每块分账</strong><span data-i18n="r3">19 NEB 可分配，按最近 256 个 share 分，抽 1%。</span></div></li>
+        <li><b>04</b><div><strong data-i18n="r4t">到期派彩</strong><span data-i18n="r4">区块收益等 100 块成熟，满 1 NEB 自动打到绑定地址。</span></div></li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <div class="cardhead"><span class="label">LIVE</span><span class="tag" id="tagwt">0 miners</span></div>
+      <div class="kv"><span data-i18n="k_height">链高度</span><b id="k-height">–</b></div>
+      <div class="kv"><span data-i18n="k_poolhash">池算力</span><b id="k-hash">–</b></div>
+      <div class="kv"><span data-i18n="k_fee">费率</span><b id="k-fee">1%</b></div>
+      <div class="kv"><span data-i18n="k_pplns">结算</span><b id="k-scheme">PPLNS 256</b></div>
+      <div class="kv"><span data-i18n="k_pending">待成熟</span><b id="k-pending">–</b></div>
+      <div class="kv"><span data-i18n="k_ip">你的出口 IP</span><b id="k-ip">…</b></div>
+      <div class="kv"><span data-i18n="k_bound">绑定状态</span><b id="k-bound">–</b></div>
+      <div class="sparkline">
+        <canvas id="sparkline" height="46"></canvas>
+        <div class="sparkcap"><span data-i18n="spark_cap">算力走势 · 最近 15 分钟</span><span id="spark-now">–</span></div>
+      </div>
+    </div>
+  </aside>
+</main>
+
+<footer>
+  <span class="g" id="f-status">● connecting</span>
+  <span id="f-height">height –</span>
+  <span id="f-miners">0 miners</span>
+  <span style="margin-left:auto">argonpool.com · v1.0.1</span>
+</footer>
+
+<script>
+/* ---------------------------------------------------------------- i18n */
+const I18N = {
+  zh: {
+    mainnet: "mainnet", nav_pool: "矿池", nav_miners: "矿工", nav_blocks: "出块", nav_wallet: "钱包",
+    why_label: "优势", why_h: "为什么在 argonpool 挖",
+    nav_hashrate: "算力", k_net: "全网算力", k_pool: "本池算力", k_miners: "矿工", miners_link: "矿工列表、全网算力与出块 →",
+    why_1t: "1% 池费", why_1: "对照：AriaPool 2%、Suprnova 1%、NurseryPool 1%，MeshPool 0.3% 但只接它自家矿机。我们不收注册费，也不抽矿机时间。",
+    why_2t: "两条协议都接", why_2: "官方矿机和 Aria Energy NEB 走 3441，Suprminer 走 3442 —— 不用换矿机，也不用等我们适配你那一款。",
+    why_3t: "每个 share 都转发上链", why_3: "矿工的每个 chain share 都由池子自己的 P2P 会话推给节点、进入区块的 share 列表，不是只在池子内部记一笔账。",
+    why_4t: "账目三分离，地址即账号", why_4: "待确认 / 可派彩 / 已派彩分开算，块块可查；不用注册，填地址就能看自己的算力、份额和收益。",
+    why_5t: "节点与池子同机", why_5: "节点和池子跑在同一台机器、同一条链路：出块后 job 与模型第一时间推给矿工，不给矿工喂过期模板。",
+    why_6t: "自动派彩", why_6: "100 块成熟后自动发到挖矿地址，最低 1 NEB，每笔都带交易 ID，可在链上核对。",
+    why_note: "各家费率以对方页面为准（2026-11-18 核对）。算力由矿机决定，池子只负责收 share 和记账 —— 所以最快的矿机我们也接。",
+    search_ph: "搜索地址 neb1…", search_btn: "查询",
+    h1: "挖矿的每一步，都变成 <b>NEB</b> 打进你的地址。",
+    lede: "argonpool.com 是给 NEB 矿工的公共矿池：只接 GPU、PPLNS 结算、抽成 1%。协议里矿工没有用户名，矿池按出口 IP 认人 —— 先绑定收款地址，再开矿机。",
+    waiting_genesis: "等待创世块",
+    hint: "输入 <b>help</b>，按 <b>Tab</b> 补全，或点下面的命令。",
+    cmd_ph: "输入命令，或点下面任意一条",
+    keys: "Tab 补全 · ↑ 历史 · Ctrl+L 清屏",
+    acct_title: "账户", copy: "复制", copy_ok: "已复制",
+    t_hashrate: "当前算力", t_share_pct: "24h 份额占比", t_shares: "累计 share", t_blocks: "出块",
+    b_pending: "待确认", b_available: "可派彩", b_paid: "已派彩",
+    spark_l: "24 小时算力（30 分钟一档）",
+    a_blocks_h: "最近出块", a_pay_h: "派彩记录",
+    th_addr: "地址", th_share: "share", th_hash: "算力", th_last: "最近",
+    th_height: "高度", th_time: "时间", th_reward: "奖励", th_shares: "share",
+    th_amount: "金额", th_status: "状态",
+    no_miners: "还没有矿工接入", no_blocks: "等待第一个块",
+    pool_label: "矿池", pool_h: "GPU 挖矿 · PPLNS 结算 · 自动派彩",
+    pool_p: "share 是链上对象，矿池只负责转发和记账。难度由协议固定为区块难度 × 32，所以只有 GPU 有意义。",
+    r1t: "先绑定地址", r1: "输入 <code>bind neb1…</code>，把当前出口 IP 绑到你的地址。",
+    r2t: "再开矿机", r2: "GPU 连 <code>argonpool.com:3441</code>，数据集用官方 16 MB 那份。",
+    r3t: "每块分账", r3: "19 NEB 可分配，按最近 256 个 share 分，抽 1%。",
+    r4t: "到期派彩", r4: "区块收益等 100 块成熟，满 1 NEB 自动打到绑定地址。",
+    k_height: "链高度", k_poolhash: "池算力", k_fee: "费率", k_pplns: "结算", k_pending: "待成熟",
+    spark_cap: "算力走势 · 最近 15 分钟",
+    k_ip: "你的出口 IP", k_bound: "绑定状态",
+    k_1h: "1 小时算力", k_24h: "24 小时算力", k_last: "最近 share", k_conn: "连接 / rig",
+    k_est: "预计日收益", k_min: "最低派彩",
+    online: "在线", offline: "离线", unbound: "未绑定",
+    install_note: '数据集 16 MB：<a href="https://github.com/SilasEigen/neb/releases/download/v1.0.1/neb-datasets.bin">neb-datasets.bin</a> · HiveOS：<code>nebminer-1.0.1.tar.gz</code>，节点地址填 <code>argonpool.com:3441</code><br>本池不接 CPU —— share 难度由协议固定为区块难度 × 32。DNS 异常时用 <code>104.129.51.179:3441</code>。',
+    pending_sub: (n, b) => n ? `${n} 个区块收益，最早还要 ${b} 块成熟` : "暂无未成熟收益",
+    pending_none: "暂无未成熟收益",
+    pending_wait: (n) => `${n} 个区块收益，等链上高度确认`,
+    avail_sub: (m) => `满 ${m} NEB 自动派彩`,
+    paid_sub: (n) => `累计 ${n} 笔`,
+    mature_in: (b) => `约 ${b} 块后成熟`,
+    no_data: "暂无记录",
+    status_sent: "已发送", status_failed: "失败",
+    welcome1: "NEB pool · argonpool.com · mainnet",
+    welcome2: "输入 help 查看命令；搜索框可以直接查任意地址。",
+    help_title: "NEB pool · argonpool.com",
+    help_lines: [["help","列出所有命令"],["bind <neb1…>","把当前出口 IP 绑定到你的地址"],
+      ["me","查看已绑定地址的账户详情"],["look <neb1…>","查看任意地址的账户详情"],
+      ["mine","显示 GPU 矿机接入命令"],["miners","当前矿工与算力"],["blocks","最近出的块"],
+      ["fee","费率与结算规则"],["status","链与矿池状态"],["clear","清屏"]],
+    need_addr: "用法：bind neb1…",
+    look_need: "用法：look neb1…  或者用右上角搜索框",
+    unknown_cmd: (c) => `unknown command: ${c}  (试试 help)`,
+    submitting: "提交中…",
+    not_found_addr: "地址格式不对，应该以 neb1 开头",
+    online_s: "在线", offline_s: "离线",
+  },
+  en: {
+    mainnet: "mainnet", nav_pool: "pool", nav_miners: "miners", nav_blocks: "blocks", nav_wallet: "wallet",
+    why_label: "why us", why_h: "Why mine on argonpool",
+    nav_hashrate: "hashrate", k_net: "network", k_pool: "this pool", k_miners: "miners", miners_link: "miners, network hashrate and blocks →",
+    why_1t: "1% pool fee", why_1: "For reference: AriaPool 2%, Suprnova 1%, NurseryPool 1%, MeshPool 0.3% but only for its own miner. No registration fee, no cut of your miner's time.",
+    why_2t: "Both protocols", why_2: "The official miner and Aria Energy NEB connect on 3441; Suprminer connects on 3442 — no need to switch miners or wait for us to support yours.",
+    why_3t: "Every share reaches the chain", why_3: "Each chain share is pushed to the node over the pool's own peer session and lands in the block's share list — not just booked inside the pool.",
+    why_4t: "Three balances, address as account", why_4: "Pending / available / paid out are kept apart and every block can be checked; no sign-up, just paste your address to see hashrate, share and earnings.",
+    why_5t: "Node and pool on one box", why_5: "The node and the pool share one machine and one path: a new block's job and model reach your miner first, so you never hash a stale template.",
+    why_6t: "Automatic payouts", why_6: "Paid to your mining address once a block is 100 deep, 1 NEB minimum, every payment carries a transaction id you can check on-chain.",
+    why_note: "Fees are as published by each pool on 2026-11-18. Hashrate comes from the miner, not the pool — which is why we take the fastest ones too.",
+    search_ph: "search address neb1…", search_btn: "look up",
+    h1: "Every step of mining pays <b>NEB</b> straight to your address.",
+    lede: "argonpool.com is a public pool for NEB miners: GPU only, PPLNS, 1% fee. The protocol carries no worker name, so the pool identifies you by outbound IP — bind your address first, then start the miner.",
+    waiting_genesis: "waiting for genesis",
+    hint: "Type <b>help</b>, press <b>Tab</b> to complete, or click a command below.",
+    cmd_ph: "type a command, or click one below",
+    keys: "Tab complete · ↑ history · Ctrl+L clears",
+    acct_title: "account", copy: "copy", copy_ok: "copied",
+    t_hashrate: "hashrate", t_share_pct: "24h pool share", t_shares: "shares", t_blocks: "blocks",
+    b_pending: "pending", b_available: "available", b_paid: "paid out",
+    spark_l: "24h hashrate (30-minute buckets)",
+    a_blocks_h: "blocks found", a_pay_h: "payouts",
+    th_addr: "address", th_share: "shares", th_hash: "hashrate", th_last: "last",
+    th_height: "height", th_time: "time", th_reward: "reward", th_shares: "shares",
+    th_amount: "amount", th_status: "status",
+    no_miners: "no miners yet", no_blocks: "waiting for the first block",
+    pool_label: "the pool", pool_h: "GPU mining · PPLNS · automatic payouts",
+    pool_p: "A share is an on-chain object; the pool only relays and accounts. Difficulty is fixed by the protocol at 32x the block target, so only GPUs matter.",
+    r1t: "bind your address", r1: "Type <code>bind neb1…</code> to link this outbound IP to your address.",
+    r2t: "start the miner", r2: "Point the GPU at <code>argonpool.com:3441</code> with the official 16 MB dataset.",
+    r3t: "split per block", r3: "19 NEB distributable per block over the last 256 shares, 1% fee.",
+    r4t: "mature, then pay", r4: "Rewards mature after 100 blocks; 1 NEB or more is paid to your bound address.",
+    k_height: "height", k_poolhash: "pool hashrate", k_fee: "fee", k_pplns: "scheme", k_pending: "maturing",
+    spark_cap: "hashrate · last 15 min",
+    k_ip: "your outbound IP", k_bound: "binding",
+    k_1h: "1h hashrate", k_24h: "24h hashrate", k_last: "last share", k_conn: "conns / rig",
+    k_est: "est. daily", k_min: "min payout",
+    online: "online", offline: "offline", unbound: "not bound",
+    install_note: 'Dataset 16 MB: <a href="https://github.com/SilasEigen/neb/releases/download/v1.0.1/neb-datasets.bin">neb-datasets.bin</a> · HiveOS: <code>nebminer-1.0.1.tar.gz</code>, node <code>argonpool.com:3441</code><br>Hashrate comes from the miner, not the pool — point whichever miner is fastest on your card at us. No CPU mining (share target is fixed at 32x the block target). If DNS fails use <code>104.129.51.179</code>.',
+    pending_sub: (n, b) => n ? `${n} block rewards, first matures in ${b} blocks` : "nothing maturing",
+    pending_none: "nothing maturing",
+    pending_wait: (n) => `${n} block reward(s), waiting for chain height`,
+    avail_sub: (m) => `paid automatically at ${m} NEB`,
+    paid_sub: (n) => `${n} payout(s)`,
+    mature_in: (b) => `in ~${b} blocks`,
+    no_data: "no records",
+    status_sent: "sent", status_failed: "failed",
+    welcome1: "NEB pool · argonpool.com · mainnet",
+    welcome2: "Type help for commands; the search box looks up any address.",
+    help_title: "NEB pool · argonpool.com",
+    help_lines: [["help","list every command"],["bind <neb1…>","link this outbound IP to your address"],
+      ["me","show the account bound to this IP"],["look <neb1…>","show any address"],
+      ["mine","print the GPU miner command"],["miners","current miners and hashrate"],["blocks","recent blocks"],
+      ["fee","fee and payout rules"],["status","chain and pool status"],["clear","clear the screen"]],
+    need_addr: "usage: bind neb1…",
+    look_need: "usage: look neb1…  (or use the search box)",
+    unknown_cmd: (c) => `unknown command: ${c}  (try help)`,
+    submitting: "submitting…",
+    not_found_addr: "that does not look like a neb1… address",
+    online_s: "online", offline_s: "offline",
+  }
+};
+let lang = localStorage.getItem("nebpool-lang") || "zh";
+const t = k => (I18N[lang] && I18N[lang][k] !== undefined) ? I18N[lang][k] : (I18N.zh[k] ?? k);
+
+/* ---------------------------------------------------------------- helpers */
+const $ = id => document.getElementById(id);
+const fmtHash = n => n === null || n === undefined ? '–' : !n ? '0 H/s' : n >= 1e12 ? (n/1e12).toFixed(2)+' TH/s'
+  : n >= 1e9 ? (n/1e9).toFixed(2)+' GH/s' : n >= 1e6 ? (n/1e6).toFixed(2)+' MH/s'
+  : n >= 1e3 ? (n/1e3).toFixed(2)+' kH/s' : n.toFixed(0)+' H/s';
+const ago = s => s == null ? '–' : s < 60 ? Math.round(s)+'s' : s < 3600 ? Math.round(s/60)+'m'
+  : s < 86400 ? Math.round(s/3600)+'h' : Math.round(s/86400)+'d';
+const short = a => a && a.length > 18 ? a.slice(0,9)+'…'+a.slice(-5) : a;
+const nfmt = n => (n||0).toLocaleString(lang === 'zh' ? 'en-US' : 'en-US');
+const neb = n => (n == null ? '–' : Number(n).toFixed(8).replace(/0+$/,'').replace(/\.$/,'')) + ' NEB';
+
+let S = null, hist = [], hidx = 0, ACCT = null;
+
+function typeLine(text, cls, done){
+  const d = document.createElement('div');
+  d.className = 'l' + (cls ? ' ' + cls : '');
+  const span = document.createElement('span');
+  const caret = document.createElement('i');
+  caret.className = 'caret';
+  d.append(span, caret);
+  $('log').appendChild(d);
+  let i = 0;
+  const step = () => {
+    span.textContent = text.slice(0, ++i);
+    $('log').scrollTop = $('log').scrollHeight;
+    if (i < text.length) setTimeout(step, 8);
+    else { caret.remove(); done && done(); }
+  };
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) { span.textContent = text; caret.remove(); done && done(); return; }
+  step();
+}
+
+// a stat that flashes when its value actually changes
+function setNum(id, v){
+  const e = $(id); if (!e) return;
+  const next = String(v);
+  if (e.textContent === next) return;
+  e.textContent = next;
+  e.classList.remove('tick'); void e.offsetWidth; e.classList.add('tick');
+}
+
+let LAST_TOP = null;
+let FIRST_PAINT = false;
+const SAMPLES = [];
+
+// The numbers roll up on the first paint instead of snapping in.
+function countUp(id, target, fmt, ms = 800){
+  const e = $(id); if (!e) return;
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) { e.textContent = fmt(target); return; }
+  const t0 = performance.now();
+  const step = (t) => {
+    const k = Math.min(1, (t - t0) / ms);
+    e.textContent = fmt(target * (1 - Math.pow(1 - k, 3)));
+    if (k < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
+
+// A sparkline of the network and the pool, sampled by this page every 5 seconds.
+function pushSample(d){
+  SAMPLES.push({ net: d.network_hashrate || 0, pool: d.hashrate || 0 });
+  if (SAMPLES.length > 180) SAMPLES.shift();
+  const now = $('spark-now');
+  if (now) now.textContent = fmtHash(d.hashrate || 0);
+  drawSpark();
+}
+
+let SEEDED = false;
+function seedHistory(d){
+  if (SEEDED || !d.history || !d.history.length) return;
+  SEEDED = true;
+  SAMPLES.length = 0;
+  d.history.forEach(([ts, net, pool]) => SAMPLES.push({ net, pool }));
+  drawSpark();
+}
+
+function drawSpark(){
+  const c = $('sparkline'); if (!c || !c.clientWidth) return;
+  const dpr = window.devicePixelRatio || 1, w = c.clientWidth, h = 46;
+  if (c.width !== Math.round(w * dpr)) { c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); }
+  const g = c.getContext('2d');
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.clearRect(0, 0, w, h);
+  if (SAMPLES.length < 2) return;
+  const maxN = Math.max(...SAMPLES.map(s => s.net), 1);
+  const px = i => 1 + (i / (SAMPLES.length - 1)) * (w - 2);
+  const py = v => h - 3 - (v / maxN) * (h - 9);
+  g.beginPath();
+  SAMPLES.forEach((s, i) => i ? g.lineTo(px(i), py(s.net)) : g.moveTo(px(i), py(s.net)));
+  g.strokeStyle = '#87ff8744'; g.lineWidth = 1; g.stroke();
+  g.beginPath();
+  SAMPLES.forEach((s, i) => i ? g.lineTo(px(i), py(s.pool)) : g.moveTo(px(i), py(s.pool)));
+  g.strokeStyle = '#87ff87'; g.lineWidth = 1.5; g.stroke();
+  const last = SAMPLES.length - 1;
+  g.beginPath(); g.arc(px(last), py(SAMPLES[last].pool), 2.2, 0, 7); g.fillStyle = '#87ff87'; g.fill();
+}
+let BOOT_TYPED = false;
+let LIVE_LINE = false;
+
+// one typed status line once the first numbers are in, so the page opens with
+// something moving instead of a wall of static text
+function typeLiveLine(){
+  if (LIVE_LINE || !S) return;
+  LIVE_LINE = true;
+  const live = (S.workers || []).filter(w => w.online || w.conns > 0);
+  const parts = ['mainnet'];
+  if (S.height != null) parts.push('block ' + nfmt(S.height));
+  parts.push(fmtHash(S.network_hashrate || 0));
+  parts.push(live.length + ' miners');
+  typeLine(parts.join('  ·  '), 'ok');
+}
+function line(text, cls){
+  const d = document.createElement('div');
+  d.className = 'l' + (cls ? ' '+cls : '');
+  d.textContent = text;
+  $('log').appendChild(d);
+  $('log').scrollTop = $('log').scrollHeight;
+}
+function cmdEcho(text){
+  const d = document.createElement('div');
+  d.className = 'l cmd';
+  const i = document.createElement('i'); i.textContent = 'neb ~ ❯ ';
+  d.appendChild(i); d.appendChild(document.createTextNode(text));
+  $('log').appendChild(d);
+  $('log').scrollTop = $('log').scrollHeight;
+}
+
+/* ---------------------------------------------------------------- i18n apply */
+function applyLang(){
+  localStorage.setItem('nebpool-lang', lang);
+  document.documentElement.lang = lang === 'zh' ? 'zh' : 'en';
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const v = t(el.getAttribute('data-i18n'));
+    // v always comes from the static I18N table above (no user input), so innerHTML is safe here
+    if(el.hasAttribute('data-i18n-html')) el.innerHTML = v; else el.textContent = v;
+  });
+  document.querySelectorAll('[data-i18n-ph]').forEach(el => {
+    el.placeholder = t(el.getAttribute('data-i18n-ph'));
+  });
+  document.querySelectorAll('.lang button').forEach(b => b.classList.toggle('on', b.dataset.lang === lang));
+  $('log').textContent = '';
+  if (BOOT_TYPED) {
+    line(t('welcome1'), 'hd');
+    line(t('welcome2'), 'dim');
+  } else {
+    BOOT_TYPED = true;
+    typeLine(t('welcome1'), 'hd', () => typeLine(t('welcome2'), 'dim', () => typeLiveLine()));
+  }
+  if(ACCT) renderAccount(ACCT);
+  if(S) renderPool(S);
+  if(WHO.ip) renderWho();
+}
+
+/* ---------------------------------------------------------------- pool */
+function renderPool(d){
+  // `live` has to be declared before the first line that uses it: it was added
+  // further down and every earlier reference threw a temporal-dead-zone error,
+  // which silently killed the whole refresh (tiles stuck on their placeholders).
+  const live = (d.workers || []).filter((w) => w.online || w.conns > 0);
+  const h = (d.height === null || d.height === undefined) ? t('waiting_genesis') : 'block ' + nfmt(d.height);
+  if (!FIRST_PAINT) {
+    FIRST_PAINT = true;
+    countUp('k-height', d.height || 0, nfmt);
+    countUp('k-hash', d.hashrate || 0, fmtHash);
+  } else {
+    setNum('height', h);
+    setNum('k-height', d.height ?? '–');
+    setNum('k-hash', fmtHash(d.hashrate));
+  }
+  $('k-fee').textContent = d.fee_percent + '%';
+  $('k-scheme').textContent = 'PPLNS ' + d.pplns_window;
+  $('tagfee').textContent = d.fee_percent + '% fee';
+  if($('tagwt')) $('tagwt').textContent = live.length + ' miners';
+  setNum('k-net', fmtHash(d.network_hashrate || 0));
+  setNum('k-pool', fmtHash(d.hashrate || 0));
+  setNum('k-miners', live.length);
+  if($('tagpoolshare')) $('tagpoolshare').textContent = d.pool_share === null || d.pool_share === undefined
+    ? '–' : (d.pool_share * 100).toFixed(3) + '%';
+  if(d.pending_total !== undefined) setNum('k-pending', neb(d.pending_total));
+  $('f-status').textContent = '● mainnet';
+  $('f-height').textContent = 'height ' + (d.height ?? '–');
+  $('f-miners').textContent = live.length + ' miners';
+
+
+  const topNow = d.blocks.length ? d.blocks[0].height : null;
+  const isNew = LAST_TOP !== null && topNow !== null && topNow > LAST_TOP;
+  LAST_TOP = topNow;
+  if (isNew && d.blocks.length) {
+    const b = d.blocks[0];
+    typeLine('block ' + b.height + ' found  ·  ' + (b.reward / 1e8).toFixed(2) + ' NEB  ·  '
+             + b.shares + ' shares', 'ok');
+  }
+  const bb = $('blocksbody'); bb.textContent = '';
+  if(!d.blocks.length){
+    const tr = document.createElement('tr'), td = document.createElement('td');
+    td.colSpan = 4; td.className = 'empty'; td.textContent = t('no_blocks');
+    tr.appendChild(td); bb.appendChild(tr);
+  } else {
+    d.blocks.forEach((b, idx) => {
+      const tr = document.createElement('tr');
+      if (idx === 0 && isNew) tr.className = 'rowIn';
+      const c1 = document.createElement('td'); c1.className='n'; c1.textContent = b.height;
+      const c2 = document.createElement('td'); c2.className='n'; c2.textContent = ago(d.now - b.ts);
+      const c3 = document.createElement('td'); c3.className='n'; c3.textContent = (b.reward/1e8).toFixed(2);
+      const c4 = document.createElement('td'); c4.className='n'; c4.textContent = b.shares;
+      tr.append(c1,c2,c3,c4); bb.appendChild(tr);
+    });
+  }
+  $('tagblk').textContent = d.blocks.length + ' blocks';
+}
+
+async function refresh(){
+  try{
+    const d = await (await fetch('/api/stats', {cache:'no-store'})).json();
+    S = d; renderPool(d); seedHistory(d); pushSample(d); setTimeout(typeLiveLine, 700);
+    if(ACCT && document.getElementById('acct').style.display !== 'none') lookup(ACCT.address, true);
+  }catch(e){ $('f-status').textContent = '● offline'; }
+}
+
+async function whoami(){
+  try{
+    const d = await (await fetch('/api/whoami', {cache:'no-store'})).json();
+    WHO = {ip: d.ip || null, bound: d.bound || null};
+    renderWho();
+  }catch(e){}
+}
+
+let WHO = {ip: null, bound: null};
+function renderWho(){
+  $('k-ip').textContent = WHO.ip || '–';
+  if(WHO.bound){ $('k-bound').textContent = short(WHO.bound); $('k-bound').title = WHO.bound; }
+  else { $('k-bound').textContent = t('unbound'); $('k-bound').title = ''; }
+}
+
+/* ---------------------------------------------------------------- account */
+function renderAccount(d){
+  ACCT = d;
+  $('acct').style.display = '';
+  $('acct-addr').textContent = d.address.length > 30
+    ? d.address.slice(0, 14) + '…' + d.address.slice(-8) : d.address;
+  $('acct-addr').title = d.address;
+  $('acct-dot').className = 'dot' + (d.online ? '' : ' off');
+  $('acct-state').textContent = d.online ? t('online') : t('offline');
+
+  $('a-hash').textContent = fmtHash(d.hashrate);
+  $('a-pct').textContent = (d.share_pct_24h || 0).toFixed(2) + '%';
+  $('a-shares').textContent = nfmt(d.shares_total);
+  $('a-blocks').textContent = nfmt((d.blocks || []).length);
+
+  $('a-pending').textContent = neb(d.pending);
+  $('a-avail').textContent = neb(d.available);
+  $('a-paid').textContent = neb(d.paid);
+  $('a-pending-sub').textContent = d.pending_blocks
+    ? (d.next_mature == null ? t('pending_wait')(d.pending_blocks)
+                             : t('pending_sub')(d.pending_blocks, d.next_mature))
+    : t('pending_none');
+  $('a-avail-sub').textContent = t('avail_sub')(d.min_payout);
+  $('a-paid-sub').textContent = t('paid_sub')((d.payouts || []).filter(p => p.status === 'sent').length);
+
+  $('a-1h').textContent = fmtHash(d.hashrate_1h);
+  $('a-24h').textContent = fmtHash(d.hashrate_24h);
+  $('a-last').textContent = d.last_share == null ? '–' : ago(d.last_share) + ' ago';
+  $('a-conn').textContent = (d.conns || 0) + ' / ' + ((d.rigs && d.rigs.length) ? d.rigs.slice(0,3).join(', ') : '–');
+  $('a-est').textContent = d.est_daily == null ? '–' : neb(d.est_daily);
+  $('a-min').textContent = neb(d.min_payout);
+
+  const sp = $('a-spark'); sp.textContent = '';
+  const h = d.history || [], mx = Math.max(...h, 1);
+  $('a-sparkmax').textContent = mx > 1 ? fmtHash(mx) : '';
+  h.forEach((v, i) => {
+    const b = document.createElement('i');
+    b.style.height = Math.max(1, Math.round(v / mx * 44)) + 'px';
+    if(i >= h.length - 6) b.className = 'hi';
+    b.title = fmtHash(v);
+    sp.appendChild(b);
+  });
+
+  const bl = $('a-blk'); bl.textContent = '';
+  if(!(d.blocks || []).length){
+    const tr = document.createElement('tr'), td = document.createElement('td');
+    td.colSpan = 3; td.className = 'empty'; td.textContent = t('no_data');
+    tr.appendChild(td); bl.appendChild(tr);
+  } else d.blocks.slice(0,6).forEach(b => {
+    const tr = document.createElement('tr');
+    const c1 = document.createElement('td'); c1.className='n'; c1.textContent = b.height;
+    const c2 = document.createElement('td'); c2.className='n'; c2.textContent = ago(d.now - b.ts);
+    const c3 = document.createElement('td'); c3.className='n'; c3.textContent = (b.reward/1e8).toFixed(2);
+    tr.append(c1,c2,c3); bl.appendChild(tr);
+  });
+
+  const pl = $('a-pay'); pl.textContent = '';
+  if(!(d.payouts || []).length){
+    const tr = document.createElement('tr'), td = document.createElement('td');
+    td.colSpan = 3; td.className = 'empty'; td.textContent = t('no_data');
+    tr.appendChild(td); pl.appendChild(tr);
+  } else d.payouts.slice(0,6).forEach(p => {
+    const tr = document.createElement('tr');
+    const c1 = document.createElement('td'); c1.className='n'; c1.textContent = ago(d.now - p.ts);
+    const c2 = document.createElement('td'); c2.className='n'; c2.textContent = (p.amount/1e8).toFixed(4);
+    const c3 = document.createElement('td'); c3.className='n';
+    c3.textContent = p.status === 'sent' ? t('status_sent') : t('status_failed');
+    c3.style.color = p.status === 'sent' ? 'var(--g)' : 'var(--r)';
+    if(p.txid) c1.title = p.txid;
+    tr.append(c1,c2,c3); pl.appendChild(tr);
+  });
+}
+
+async function lookup(address, silent){
+  address = (address || '').trim();
+  if(!address.startsWith('neb1')) { if(!silent) line(t('not_found_addr'), 'err'); return; }
+  try{
+    const r = await fetch('/api/account?address=' + encodeURIComponent(address), {cache:'no-store'});
+    if(!r.ok){ if(!silent) line(t('not_found_addr'), 'err'); return; }
+    const d = await r.json();
+    renderAccount(d);
+    if(!silent){
+      $('acct').scrollIntoView({behavior:'smooth', block:'start'});
+      history.replaceState(null, '', '#' + address);
+    }
+  }catch(e){ if(!silent) line('lookup failed: ' + e, 'err'); }
+}
+
+/* ---------------------------------------------------------------- terminal */
+async function run(raw){
+  const input = (raw ?? $('cmd').value).trim();
+  if(!input) return;
+  $('cmd').value = '';
+  hist.push(input); hidx = hist.length;
+  cmdEcho(input);
+  const parts = input.split(/\s+/);
+  const c = parts[0].toLowerCase();
+  const arg = parts.slice(1).join(' ');
+
+  if(c === 'help'){
+    line(t('help_title'), 'hd');
+    t('help_lines').forEach(([k,v]) => line('  ' + k.padEnd(16) + v));
+  } else if(c === 'bind'){
+    if(!arg) return line(t('need_addr'), 'ye');
+    line(t('submitting'), 'dim');
+    try{
+      const r = await fetch('/api/bind', {method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({address: arg})});
+      const d = await r.json();
+      line((d.ok ? '✔ ' : '✖ ') + d.message, d.ok ? 'ok' : 'err');
+      if(d.ok){ $('k-bound').textContent = short(arg); $('k-bound').title = arg; lookup(arg); }
+    }catch(e){ line('request failed: ' + e, 'err'); }
+  } else if(c === 'me'){
+    const r = await (await fetch('/api/whoami', {cache:'no-store'})).json();
+    if(r.bound) lookup(r.bound);
+    else line(t('unbound') + ' — ' + t('need_addr'), 'ye');
+  } else if(c === 'look' || c === 'lookup'){
+    if(!arg) return line(t('look_need'), 'ye');
+    lookup(arg);
+  } else if(c === 'mine'){
+    line('GPU:', 'hd');
+    line('  neb-miner-gpu --node argonpool.com:3441 --dataset neb-datasets.bin --gpu-kernel k1');
+    line('dataset: https://github.com/SilasEigen/neb/releases/download/v1.0.1/neb-datasets.bin', 'cy');
+  } else if(c === 'miners'){
+    if(!S) return line('…', 'err');
+    if(!S.workers.length) return line(t('no_miners'), 'dim');
+    line('address            shares     hashrate      last', 'dim');
+    S.workers.forEach(w => line('  ' + short(w.account).padEnd(16) +
+      String(nfmt(w.shares)).padStart(8) + '  ' + fmtHash(w.hashrate).padStart(11) +
+      '  ' + ago(w.last_share).padStart(5)));
+  } else if(c === 'blocks'){
+    if(!S || !S.blocks.length) return line(t('no_blocks'), 'dim');
+    line('height     when    reward    shares', 'dim');
+    S.blocks.forEach(b => line('  ' + String(b.height).padEnd(9) + ago(S.now-b.ts).padStart(6) +
+      '  ' + (b.reward/1e8).toFixed(2).padStart(8) + '  ' + String(b.shares).padStart(5)));
+  } else if(c === 'fee'){
+    line('fee         ' + (S ? S.fee_percent : 1) + '%');
+    line('scheme      PPLNS ' + (S ? S.pplns_window : 256) + ' shares');
+    line('min payout  ' + (S ? S.min_payout : 1) + ' NEB');
+    line('maturity    ' + (S ? S.maturity : 100) + ' blocks');
+  } else if(c === 'status'){
+    line('height    ' + (S && S.height !== null ? S.height : t('waiting_genesis')));
+    line('hashrate  ' + fmtHash(S && S.hashrate));
+    line('miners    ' + (S ? S.workers.length : 0));
+    line('maturing  ' + (S && S.pending_total !== undefined ? neb(S.pending_total) : '–'));
+  } else if(c === 'clear'){
+    $('log').textContent = '';
+  } else {
+    line(t('unknown_cmd')(c), 'err');
+  }
+}
+
+/* ---------------------------------------------------------------- wiring */
+$('cmd').addEventListener('keydown', e => {
+  if(e.key === 'Enter'){ run(); }
+  else if(e.key === 'Tab'){
+    e.preventDefault();
+    const cmds = ['help','bind','me','look','mine','miners','blocks','fee','status','clear'];
+    const hit = cmds.find(x => x.startsWith($('cmd').value.trim()));
+    if(hit) $('cmd').value = hit;
+  } else if(e.key === 'ArrowUp'){
+    if(hidx > 0){ hidx--; $('cmd').value = hist[hidx]; }
+  } else if(e.key === 'ArrowDown'){
+    if(hidx < hist.length-1){ hidx++; $('cmd').value = hist[hidx]; }
+    else { hidx = hist.length; $('cmd').value = ''; }
+  }
+});
+document.querySelectorAll('.chips button').forEach(b => {
+  b.onclick = () => { $('cmd').value = b.dataset.cmd; $('cmd').focus(); };
+});
+document.addEventListener('keydown', e => {
+  if(e.ctrlKey && e.key.toLowerCase() === 'l'){ e.preventDefault(); $('log').textContent=''; $('cmd').focus(); }
+});
+$('qbtn').onclick = () => { lookup($('q').value); $('q').value=''; };
+// the wallet page shares this header; a search there lands here with ?q=
+(() => {
+  const q = new URLSearchParams(location.search).get('q') || new URLSearchParams(location.search).get('addr');
+  // after applyLang, which clears the log and prints the banner
+  if (q) setTimeout(() => { $('q').value = q; lookup(q); $('q').value = ''; }, 900);
+})();
+$('q').addEventListener('keydown', e => { if(e.key === 'Enter'){ lookup($('q').value); $('q').value=''; } });
+$('acct-copy').onclick = async () => {
+  if(!ACCT) return;
+  try{ await navigator.clipboard.writeText(ACCT.address); $('acct-copy').textContent = t('copy_ok'); }
+  catch(e){}
+  setTimeout(() => { $('acct-copy').textContent = t('copy'); }, 1200);
+};
+document.querySelectorAll('.lang button').forEach(b => {
+  b.onclick = () => { lang = b.dataset.lang; applyLang(); };
+});
+
+applyLang();
+refresh(); whoami();
+const fromHash = location.hash.replace('#','');
+if(fromHash.startsWith('neb1')) lookup(fromHash);
+setInterval(refresh, 5000);
+</script>
+</html>
