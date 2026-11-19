@@ -1,15 +1,12 @@
-// The wallet moved from argonpool.com/wallet to wallet.argonpool.com so that
-// nothing on the pool pages shares a browser origin with it. Re-importing a key
-// on every user is not acceptable, so this page hands the encrypted keystore to
-// the new origin through the URL fragment: a fragment is never sent to a server,
-// and the blob is ciphertext that only the user's password opens.
-//
-// It also checks the new origin before travelling. A proxy running fake-ip DNS
-// hands back a dead connection for a hostname it has never seen, and landing
-// someone on ERR_CONNECTION_CLOSED with no way back is worse than not moving them
-// at all, so an unreachable origin keeps the visitor here instead of stranding them.
+// The wallet lives at wallet.argonpool.com now, but every ad, bookmark and post
+// still points at /wallet/. This page is the door between the two and it must
+// never stand in the way: a visitor without a key is sent straight through, and a
+// visitor whose network cannot reach the new origin gets the same wallet served
+// from here instead of a message. The only thing worth a pause is a stored key,
+// because that is the one case where moving it is the point.
 (function () {
   var NEW = "https://wallet.argonpool.com/";
+  var LOCAL = "/wallet/legacy.html";
   var WALLET = "neb.wallet.v1";
   var WATCH = "neb.watch.v1";
   var PENDING = "neb.pending";
@@ -22,13 +19,9 @@
         b1: "It now lives at wallet.argonpool.com — same site, separate origin, so a problem on the pool pages cannot reach it.",
         b2: "Nothing else changes: same key, same balance, same password. Your key never leaves this browser.",
         go: "Continue",
-        check: "Checking the new address…",
+        opening: "Opening the wallet…",
         cd: function (n) { return "Continuing in " + n + "s…"; },
-        uh: "Cannot reach the new address",
-        up: "Your key is still in this browser and nothing has been moved. This is usually a proxy or DNS problem on your side — retry, or keep using the page here.",
-        retry: "Retry",
-        esc: "Keep using the old page",
-        escNote: "If you already moved your wallet, the old page will look empty — that is expected.",
+        esc: "Open the page here instead",
         fh: "Could not move the wallet",
         fp: "Go back to argonpool.com/wallet and try again, or import your 64-character key on the new address.",
         fa: "Open wallet.argonpool.com",
@@ -38,20 +31,16 @@
         b1: "新地址是 wallet.argonpool.com —— 同一个网站、独立源，矿池页面上的任何问题都碰不到它。",
         b2: "其他都不变：同一个私钥、同样的余额、原来的密码。密钥不会离开这个浏览器。",
         go: "继续",
-        check: "正在检查新地址…",
+        opening: "正在打开钱包…",
         cd: function (n) { return n + " 秒后自动继续…"; },
-        uh: "新地址连不上",
-        up: "你的密钥还在这个浏览器里，什么都没动。通常是本机代理或 DNS 的问题 —— 可以重试，或者先在这里继续用。",
-        retry: "重试",
-        esc: "用旧页面继续",
-        escNote: "如果你之前已经迁移过，旧页面看起来是空的，这是正常的。",
+        esc: "在这里打开钱包",
         fh: "钱包没能搬过来",
         fp: "请回到 argonpool.com/wallet 再试一次，或者在新地址用你的 64 位私钥重新导入。",
         fa: "前往 wallet.argonpool.com",
       };
 
   function q(name) {
-    return new URLSearchParams(location.search).get(name);
+    try { return new URLSearchParams(location.search).get(name); } catch (err) { return null; }
   }
   function $(id) { return document.getElementById(id); }
 
@@ -89,17 +78,18 @@
     }
   }
 
-  // probe URL, overridable for testing
   var probeUrl = q("probe") || NEW + "ping.txt";
-  var probeState = null; // null = pending, true = reachable, false = not
 
-  function probe(cb) {
+  // Is the new origin actually there? A proxy that has never seen the hostname can
+  // answer with a dead connection, and that costs one second here instead of
+  // dropping the visitor on an error page with no way back.
+  function probe(ms, cb) {
     var settled = false;
     var timer = setTimeout(function () {
       if (settled) return;
       settled = true;
       cb(false);
-    }, 2500);
+    }, ms);
     fetch(probeUrl, { mode: "no-cors", cache: "no-store" })
       .then(function () {
         if (settled) return;
@@ -115,68 +105,50 @@
       });
   }
 
-  function showUnreachable() {
+  function here() {
+    location.replace(LOCAL);
+  }
+
+  // No key on this browser: nothing to carry, nothing to warn about. Ad traffic
+  // lands here and should see a wallet, not a notice.
+  if (!hasKey) {
     $("card").className = "hide";
     $("say").className = "";
-    $("say-h").textContent = T.uh;
-    $("say-p").textContent = T.up;
-    $("retry").textContent = T.retry;
-    $("retry").onclick = function () {
-      $("say").className = "hide";
-      $("card").className = "";
-      start();
-    };
-    $("esc2").textContent = T.esc;
-    $("esc-note").textContent = hasKey ? T.escNote : "";
-    if (!hasKey) $("esc-wrap").className = "hide";
-    // a hit here is the only way to find out how many visitors a broken proxy
-    // costs us; it carries nothing but a timestamp
-    try { fetch("/wallet/no-route?t=" + Date.now(), { cache: "no-store" }).catch(function () {}); } catch (err) {}
+    $("say-p").textContent = T.opening;
+    probe(1200, function (ok) {
+      if (ok) location.replace(NEW);
+      else here();
+    });
+    return;
   }
 
   var target = NEW + (b64 ? "#migrate=" + b64 : "");
   var timer = null;
+  var left = 3;
 
   function go() {
     if (timer) clearInterval(timer);
-    if (probeState === false) { showUnreachable(); return; }
     location.replace(target);
   }
 
-  function start() {
-    if (!hasKey) {
-      // nothing to carry over: a watch-only visitor or a fresh browser
-      $("card").className = "hide";
-      $("cd").textContent = T.check;
-      probe(function (ok) {
-        probeState = ok;
-        if (ok) location.replace(NEW);
-        else showUnreachable();
-      });
-      return;
-    }
+  $("t-h").textContent = T.h;
+  $("t-b1").textContent = T.b1;
+  $("t-b2").textContent = T.b2;
+  $("go").textContent = T.go;
+  $("esc").textContent = T.esc;
+  $("cd").textContent = T.opening;
+  $("card").className = "";
+  $("go").onclick = go;
 
-    $("t-h").textContent = T.h;
-    $("t-b1").textContent = T.b1;
-    $("t-b2").textContent = T.b2;
-    $("go").textContent = T.go;
-    $("esc").textContent = T.esc;
-    $("cd").textContent = T.check;
-    $("card").className = "";
-    $("go").onclick = go;
-
-    var left = 5;
-    probe(function (ok) {
-      probeState = ok;
-      if (!ok) { showUnreachable(); return; }
+  probe(2500, function (ok) {
+    // unreachable: the key stays where it is and the same wallet opens from here,
+    // so a broken network costs nothing
+    if (!ok) { here(); return; }
+    $("cd").textContent = T.cd(left);
+    timer = setInterval(function () {
+      left -= 1;
+      if (left <= 0) { go(); return; }
       $("cd").textContent = T.cd(left);
-      timer = setInterval(function () {
-        left -= 1;
-        if (left <= 0) { go(); return; }
-        $("cd").textContent = T.cd(left);
-      }, 1000);
-    });
-  }
-
-  start();
+    }, 1000);
+  });
 })();
