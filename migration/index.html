@@ -14,12 +14,11 @@
   main{width:100%;max-width:430px;border:1px solid #23262b;border-radius:14px;padding:22px 20px;background:#0d0f12}
   h1{margin:0 0 12px;font-size:16px;letter-spacing:.01em}
   p{margin:0 0 10px;color:#a9b0ba;font-size:13px}
-  b{color:#e8eaed}
-  .addr{color:#7fd1a6;word-break:break-all}
   button{width:100%;margin:14px 0 8px;padding:11px;border-radius:9px;border:0;background:#2b6cf6;color:#fff;
          font:inherit;font-size:13px;cursor:pointer}
   button:active{transform:translateY(1px)}
-  .small{font-size:12px;color:#7d848f;margin:0}
+  button.ghost{background:none;border:1px solid #2d3138;color:#c7ccd4;margin:0}
+  .small{font-size:12px;color:#7d848f;margin:0 0 8px}
   a{color:#7fa7ff}
   .hide{display:none}
 </style>
@@ -33,11 +32,23 @@
   <p class="small" id="cd"></p>
   <p class="small"><a href="/wallet/legacy.html" id="esc"></a></p>
 </main>
+
+<main id="say" class="hide">
+  <h1 id="say-h"></h1>
+  <p id="say-p"></p>
+  <button id="retry"></button>
+  <p class="small" id="esc-wrap" style="margin-top:12px">
+    <a href="/wallet/legacy.html" id="esc2"></a>
+  </p>
+  <p class="small" id="esc-note"></p>
+</main>
+
 <main id="fail" class="hide">
   <h1 id="f-h"></h1>
   <p id="f-p"></p>
   <p><a href="https://wallet.argonpool.com/" id="f-a"></a></p>
 </main>
+
 <noscript>
   <p>钱包需要 JavaScript。<a href="https://wallet.argonpool.com/">前往新地址</a></p>
   <p>The wallet needs JavaScript. <a href="https://wallet.argonpool.com/">Open the new address</a></p>
