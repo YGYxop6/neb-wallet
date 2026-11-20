@@ -16,7 +16,7 @@ const IDLE_MS = 5 * 60 * 1000;
 
 const I18N = {
   zh: {
-    nav_pool: "矿池", nav_miners: "矿工", nav_blocks: "出块", nav_wallet: "钱包",
+    brand: "全网数据", nav_data: "数据", nav_pools: "矿池", nav_addr: "地址", nav_wallet: "钱包", nav_fb: "问题反馈",
     mainnet: "mainnet", search_ph: "搜索地址 neb1…", search_btn: "查询",
     w_kick: "NEB · 非托管钱包", w_h1: "钱包只在你的浏览器里",
     w_p1: "私钥在你的设备上生成并加密保存，永远不会发到服务器。服务器只提供余额查询和交易广播，就算它被完全攻破，也动不了你的币。",
@@ -67,7 +67,7 @@ const I18N = {
     build: "代码指纹",
   },
   en: {
-    nav_pool: "pool", nav_miners: "miners", nav_blocks: "blocks", nav_wallet: "wallet",
+    brand: "network data", nav_data: "data", nav_pools: "pools", nav_addr: "address", nav_wallet: "wallet", nav_fb: "feedback",
     mainnet: "mainnet", search_ph: "search a neb1 address…", search_btn: "look up",
     w_kick: "NEB · non-custodial wallet", w_h1: "Your wallet stays in your browser",
     w_p1: "The key is generated on your device and stored encrypted. It is never sent to the server, so even a fully compromised server cannot move your coins.",
