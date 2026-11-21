@@ -29,6 +29,8 @@ const rootHtml = (await readFile("index.html", "utf8"))
   .replaceAll('href="/"', 'href="https://argonpool.com/"')
   .replaceAll('href="/pools.html"', 'href="https://argonpool.com/pools.html"')
   .replaceAll('href="/address.html"', 'href="https://argonpool.com/address.html"')
+  .replaceAll('href="/price.html"', 'href="https://argonpool.com/price.html"')
+  .replaceAll('href="/donate.html"', 'href="https://argonpool.com/donate.html"')
   .replace('href="/wallet/" class="on"', 'href="/" class="on"');
 await writeFile(`${out}/index-wallet.html`, rootHtml);
 
